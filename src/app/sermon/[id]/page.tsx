@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { slideDensities, slideStyles } from "@/lib/catalogs";
+import { exportPptx, exportWord } from "@/lib/export";
 import { slideImagePrompt } from "@/lib/prompt";
 import { getSermon, newId, saveSermon } from "@/lib/store";
-import type { Sermon, SlideDensity } from "@/lib/types";
+import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
 
 type Tab = "sermon" | "bosquejo" | "diapositivas";
 
@@ -96,6 +97,24 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     setBusy("");
   }
 
+  async function downloadWord() {
+    if (!sermon) return;
+    try {
+      await exportWord(sermon);
+    } catch {
+      setError("No se pudo generar el archivo Word.");
+    }
+  }
+
+  async function downloadPptx(deck: SlideDeck) {
+    if (!sermon) return;
+    try {
+      await exportPptx(sermon, deck);
+    } catch {
+      setError("No se pudo generar el archivo PowerPoint.");
+    }
+  }
+
   if (!loaded) return <p className="text-sm text-stone-500">Cargando...</p>;
   if (!sermon)
     return (
@@ -142,7 +161,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
 
       {tab === "sermon" && (
         <div className="space-y-3">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={regenerate}
               disabled={busy !== ""}
@@ -150,8 +169,17 @@ export default function SermonPage({ params }: { params: { id: string } }) {
             >
               {busy === "sermon" ? "Regenerando..." : "Regenerar"}
             </button>
+            <button onClick={downloadWord} className="btn-ghost">
+              Descargar Word
+            </button>
+            <button
+              onClick={() => window.open(`/sermon/${sermon.id}/print`, "_blank")}
+              className="btn-ghost"
+            >
+              Descargar PDF
+            </button>
             <span className="self-center text-xs text-stone-400">
-              Puedes editar el texto directamente; se guarda solo.
+              El texto se edita directamente y se guarda solo.
             </span>
           </div>
           <textarea
@@ -246,10 +274,18 @@ export default function SermonPage({ params }: { params: { id: string } }) {
 
           {sermon.slideDecks.map((deck) => (
             <div key={deck.id} className="card space-y-2">
-              <p className="text-sm font-semibold text-stone-700">
-                {slideStyles.find((s) => s.slug === deck.style)?.name} -{" "}
-                {deck.density}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-stone-700">
+                  {slideStyles.find((s) => s.slug === deck.style)?.name} -{" "}
+                  {deck.density}
+                </p>
+                <button
+                  onClick={() => downloadPptx(deck)}
+                  className="btn-ghost"
+                >
+                  Descargar PowerPoint
+                </button>
+              </div>
               <pre className="whitespace-pre-wrap rounded-lg bg-stone-50 p-3 text-sm">
                 {deck.text}
               </pre>

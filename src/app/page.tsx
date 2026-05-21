@@ -1,23 +1,47 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { deleteSermon, listSermons } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import type { Sermon } from "@/lib/types";
 
 export default function HomePage() {
+  const router = useRouter();
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setSermons(listSermons());
-    setLoaded(true);
-  }, []);
+    let active = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        router.replace("/login");
+        return;
+      }
+      try {
+        const list = await listSermons();
+        if (active) setSermons(list);
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "Error.");
+      }
+      if (active) setLoaded(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("Eliminar este sermon?")) return;
-    deleteSermon(id);
-    setSermons(listSermons());
+    try {
+      await deleteSermon(id);
+      setSermons(await listSermons());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al eliminar.");
+    }
   }
 
   return (
@@ -27,9 +51,9 @@ export default function HomePage() {
           Prepara sermones a nivel profesional
         </h1>
         <p className="mt-2 max-w-2xl text-stone-600">
-          Elige tu marco doctrinal, el motivo, el tipo de sermon, la estrategia y el
-          metodo. Escribe tu idea y la IA te ayuda a desarrollarla, revisarla y
-          convertirla en bosquejo y diapositivas.
+          Elige tu marco doctrinal, el motivo, el tipo de sermon, la estrategia
+          y el metodo. Escribe tu idea y la IA te ayuda a desarrollarla,
+          revisarla y convertirla en bosquejo y diapositivas.
         </p>
         <Link href="/wizard" className="btn-primary mt-4">
           Crear un sermon
@@ -37,7 +61,14 @@ export default function HomePage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-stone-800">Mis sermones</h2>
+        <h2 className="mb-3 text-lg font-semibold text-stone-800">
+          Mis sermones
+        </h2>
+        {error && (
+          <p className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </p>
+        )}
         {!loaded ? (
           <p className="text-sm text-stone-500">Cargando...</p>
         ) : sermons.length === 0 ? (

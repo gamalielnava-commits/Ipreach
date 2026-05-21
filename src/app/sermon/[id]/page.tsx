@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { slideDensities, slideStyles } from "@/lib/catalogs";
 import { exportPptx, exportWord } from "@/lib/export";
 import { slideImagePrompt } from "@/lib/prompt";
 import { getSermon, newId, saveSermon } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
 
 type Tab = "sermon" | "bosquejo" | "diapositivas" | "imagenes";
@@ -17,6 +19,7 @@ interface SocialImage {
 }
 
 export default function SermonPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const [sermon, setSermon] = useState<Sermon | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>("sermon");
@@ -28,15 +31,47 @@ export default function SermonPage({ params }: { params: { id: string } }) {
   const [phrase, setPhrase] = useState("");
   const [imgStyle, setImgStyle] = useState(slideStyles[0].slug);
   const [socialImages, setSocialImages] = useState<SocialImage[]>([]);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setSermon(getSermon(params.id) ?? null);
-    setLoaded(true);
-  }, [params.id]);
+    let active = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        router.replace("/login");
+        return;
+      }
+      try {
+        const s = await getSermon(params.id);
+        if (active) setSermon(s);
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "Error.");
+      }
+      if (active) setLoaded(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [params.id, router]);
 
   function persist(next: Sermon) {
     setSermon(next);
-    saveSermon(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveSermon(next).catch((e) =>
+        setError(e instanceof Error ? e.message : "No se pudo guardar."),
+      );
+    }, 1000);
+  }
+
+  async function persistNow(next: Sermon) {
+    setSermon(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    try {
+      await saveSermon(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo guardar.");
+    }
   }
 
   async function call(kind: string, extra: Record<string, unknown> = {}) {
@@ -57,7 +92,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     setBusy("sermon");
     try {
       const text = await call("sermon");
-      if (text) persist({ ...sermon, sermonText: text });
+      if (text) await persistNow({ ...sermon, sermonText: text });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error.");
     }
@@ -69,7 +104,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     setBusy("bosquejo");
     try {
       const text = await call("outline", { sermonText: sermon.sermonText });
-      if (text) persist({ ...sermon, outlineText: text });
+      if (text) await persistNow({ ...sermon, outlineText: text });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error.");
     }
@@ -86,7 +121,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
         slideDensity: density,
       });
       if (text) {
-        persist({
+        await persistNow({
           ...sermon,
           slideDecks: [
             {

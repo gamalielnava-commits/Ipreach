@@ -51,13 +51,23 @@ export default function PrintPage({ params }: { params: { id: string } }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const s = getSermon(params.id) ?? null;
-    setSermon(s);
-    setLoaded(true);
-    if (s) {
-      const t = setTimeout(() => window.print(), 600);
-      return () => clearTimeout(t);
-    }
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      try {
+        const s = await getSermon(params.id);
+        if (!active) return;
+        setSermon(s);
+        setLoaded(true);
+        if (s) timer = setTimeout(() => window.print(), 700);
+      } catch {
+        if (active) setLoaded(true);
+      }
+    })();
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
   }, [params.id]);
 
   if (!loaded) return <p className="text-sm text-stone-500">Cargando...</p>;

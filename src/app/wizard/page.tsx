@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   commentators,
   doctrinalThemes,
@@ -59,6 +60,12 @@ export default function WizardPage() {
   const set = (patch: Partial<SermonConfig>) =>
     setConfig((c) => ({ ...c, ...patch }));
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) router.replace("/login");
+    });
+  }, [router]);
+
   const themeCategories = useMemo(() => {
     const groups: { category: string; items: typeof themes }[] = [];
     for (const t of themes) {
@@ -89,7 +96,7 @@ export default function WizardPage() {
       if (!res.ok) throw new Error(data.error || "Error al generar.");
       const id = newId();
       const now = new Date().toISOString();
-      saveSermon({
+      await saveSermon({
         id,
         title: title.trim() || config.idea.slice(0, 50) || "Sermon",
         createdAt: now,

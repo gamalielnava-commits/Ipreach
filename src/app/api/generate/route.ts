@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   buildOutlineMessages,
+  buildPhrasesMessages,
   buildSermonMessages,
   buildSlidesMessages,
   type Messages,
@@ -111,6 +112,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     }
     messages = buildSlidesMessages(config, sermonText, slideStyle, slideDensity);
+  } else if (kind === "phrases") {
+    if (!sermonText) {
+      return NextResponse.json({ error: "Falta el texto del sermon." }, { status: 400 });
+    }
+    messages = buildPhrasesMessages(sermonText);
   } else {
     return NextResponse.json({ error: "Tipo de generacion no valido." }, { status: 400 });
   }

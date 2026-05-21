@@ -8,7 +8,13 @@ import { slideImagePrompt } from "@/lib/prompt";
 import { getSermon, newId, saveSermon } from "@/lib/store";
 import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
 
-type Tab = "sermon" | "bosquejo" | "diapositivas";
+type Tab = "sermon" | "bosquejo" | "diapositivas" | "imagenes";
+
+interface SocialImage {
+  phrase: string;
+  style: string;
+  dataUrl: string;
+}
 
 export default function SermonPage({ params }: { params: { id: string } }) {
   const [sermon, setSermon] = useState<Sermon | null>(null);
@@ -18,6 +24,10 @@ export default function SermonPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState("");
   const [styleSlug, setStyleSlug] = useState(slideStyles[0].slug);
   const [density, setDensity] = useState<SlideDensity>("mediana");
+  const [phrases, setPhrases] = useState<string[]>([]);
+  const [phrase, setPhrase] = useState("");
+  const [imgStyle, setImgStyle] = useState(slideStyles[0].slug);
+  const [socialImages, setSocialImages] = useState<SocialImage[]>([]);
 
   useEffect(() => {
     setSermon(getSermon(params.id) ?? null);
@@ -115,6 +125,58 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     }
   }
 
+  async function suggestPhrases() {
+    if (!sermon) return;
+    setBusy("frases");
+    try {
+      const text = await call("phrases", { sermonText: sermon.sermonText });
+      if (text) {
+        const list = text
+          .split("\n")
+          .map((l) => l.replace(/^[\s\-*0-9.")]+/, "").trim())
+          .filter((l) => l.length > 0);
+        setPhrases(list);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error.");
+    }
+    setBusy("");
+  }
+
+  async function makeImage() {
+    if (!phrase.trim()) {
+      setError("Escribe o elige una frase para la imagen.");
+      return;
+    }
+    setBusy("imagen");
+    setError("");
+    try {
+      const res = await fetch("/api/image", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ phrase, style: imgStyle }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al generar la imagen.");
+      setSocialImages((imgs) => [
+        { phrase, style: imgStyle, dataUrl: data.image },
+        ...imgs,
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error.");
+    }
+    setBusy("");
+  }
+
+  function downloadImage(img: SocialImage) {
+    const a = document.createElement("a");
+    a.href = img.dataUrl;
+    a.download = "imagen-redes.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
   if (!loaded) return <p className="text-sm text-stone-500">Cargando...</p>;
   if (!sermon)
     return (
@@ -140,7 +202,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="flex gap-2 border-b border-stone-200">
-        {(["sermon", "bosquejo", "diapositivas"] as Tab[]).map((t) => (
+        {(["sermon", "bosquejo", "diapositivas", "imagenes"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -295,6 +357,94 @@ export default function SermonPage({ params }: { params: { id: string } }) {
                 </summary>
                 <p className="mt-1">{deck.imagePrompt}</p>
               </details>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "imagenes" && (
+        <div className="space-y-4">
+          <div className="card space-y-3">
+            <p className="text-sm text-stone-500">
+              Genera imagenes para redes sociales con frases del sermon.
+              Requiere Gemini configurado (GOOGLE_API_KEY).
+            </p>
+            <button
+              onClick={suggestPhrases}
+              disabled={busy !== ""}
+              className="btn-ghost"
+            >
+              {busy === "frases"
+                ? "Buscando frases..."
+                : "Sugerir frases del sermon"}
+            </button>
+            {phrases.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {phrases.map((p, i) => (
+                  <span
+                    key={i}
+                    onClick={() => setPhrase(p)}
+                    className={`chip ${phrase === p ? "chip-on" : "chip-off"}`}
+                  >
+                    {p}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div>
+              <label className="label">Frase para la imagen</label>
+              <textarea
+                className="field"
+                value={phrase}
+                onChange={(e) => setPhrase(e.target.value)}
+                placeholder="Escribe o elige una frase de arriba"
+              />
+            </div>
+            <div>
+              <label className="label">Estilo visual</label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {slideStyles.map((s) => (
+                  <button
+                    key={s.slug}
+                    onClick={() => setImgStyle(s.slug)}
+                    className={`rounded-lg border p-2 text-left text-sm ${
+                      imgStyle === s.slug
+                        ? "border-brand-600 bg-brand-50"
+                        : "border-stone-200 hover:border-stone-300"
+                    }`}
+                  >
+                    <span className="font-medium">{s.name}</span>
+                    <span className="block text-xs text-stone-500">
+                      {s.example}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={makeImage}
+              disabled={busy !== ""}
+              className="btn-primary"
+            >
+              {busy === "imagen" ? "Generando imagen..." : "Generar imagen"}
+            </button>
+          </div>
+
+          {socialImages.map((img, i) => (
+            <div key={i} className="card space-y-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.dataUrl}
+                alt={img.phrase}
+                className="w-full max-w-md rounded-lg"
+              />
+              <p className="text-xs text-stone-500">{img.phrase}</p>
+              <button
+                onClick={() => downloadImage(img)}
+                className="btn-ghost"
+              >
+                Descargar imagen
+              </button>
             </div>
           ))}
         </div>

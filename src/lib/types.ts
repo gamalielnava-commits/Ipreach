@@ -2,7 +2,7 @@ export type Provider = "claude" | "gemini";
 export type LengthKey = "corto" | "medio" | "largo";
 export type VerseOption = "solo-cita" | "texto-completo";
 export type SlideDensity = "corta" | "mediana" | "larga";
-export type GenerateKind = "sermon" | "outline" | "slides";
+export type GenerateKind = "sermon" | "outline" | "slides" | "phrases";
 
 export interface SermonConfig {
   idea: string;

@@ -177,3 +177,23 @@ export function slideImagePrompt(styleSlug: string, sermonTitle: string): string
   const style = findBySlug(slideStyles, styleSlug);
   return `${style?.promptBase ?? styleSlug}. Tema del sermon: "${sermonTitle}". Sin texto sobre la imagen, composicion limpia para colocar texto encima.`;
 }
+
+export function buildPhrasesMessages(sermonText: string): Messages {
+  const user = `Del siguiente sermon, extrae 6 frases breves, potentes y citables (maximo 12 palabras cada una), ideales para publicar en redes sociales de una iglesia.
+
+Devuelvelas como una lista simple, una frase por linea, sin numeracion, sin comillas y sin guiones.
+
+--- SERMON ---
+${sermonText}
+--- FIN DEL SERMON ---`;
+  return { system: SYSTEM_BASE, user };
+}
+
+export function buildSocialImagePrompt(phrase: string, styleSlug: string): string {
+  const style = findBySlug(slideStyles, styleSlug);
+  return `Crea una imagen cuadrada para una publicacion de redes sociales de una iglesia.
+Estilo visual: ${style?.promptBase ?? styleSlug}.
+Integra esta frase como tipografia elegante, legible y bien compuesta sobre la imagen: "${phrase}".
+La frase debe escribirse exactamente asi, en espanol y sin errores ortograficos.
+Composicion equilibrada y de aspecto profesional.`;
+}

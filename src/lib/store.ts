@@ -1,45 +1,70 @@
-"use client";
+import { supabase } from "./supabase";
+import type { Sermon, SermonConfig, SlideDeck } from "./types";
 
-import type { Sermon } from "./types";
-
-const KEY = "ipreach.sermons.v1";
-
-function read(): Sermon[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Sermon[]) : [];
-  } catch {
-    return [];
-  }
+interface Row {
+  id: string;
+  title: string;
+  config: SermonConfig;
+  sermon_text: string;
+  outline_text: string;
+  slide_decks: SlideDeck[];
+  created_at: string;
+  updated_at: string;
 }
 
-function write(list: Sermon[]): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(list));
+function toSermon(r: Row): Sermon {
+  return {
+    id: r.id,
+    title: r.title,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    config: r.config,
+    sermonText: r.sermon_text,
+    outlineText: r.outline_text,
+    slideDecks: r.slide_decks ?? [],
+  };
 }
 
-export function listSermons(): Sermon[] {
-  return read().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+export async function listSermons(): Promise<Sermon[]> {
+  const { data, error } = await supabase
+    .from("sermons")
+    .select("*")
+    .order("updated_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return ((data as Row[]) ?? []).map(toSermon);
 }
 
-export function getSermon(id: string): Sermon | undefined {
-  return read().find((s) => s.id === id);
+export async function getSermon(id: string): Promise<Sermon | null> {
+  const { data, error } = await supabase
+    .from("sermons")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toSermon(data as Row) : null;
 }
 
-export function saveSermon(sermon: Sermon): void {
-  const list = read();
-  const idx = list.findIndex((s) => s.id === sermon.id);
-  const next = { ...sermon, updatedAt: new Date().toISOString() };
-  if (idx >= 0) list[idx] = next;
-  else list.push(next);
-  write(list);
+export async function saveSermon(sermon: Sermon): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Inicia sesion para guardar el sermon.");
+  const { error } = await supabase.from("sermons").upsert({
+    id: sermon.id,
+    user_id: auth.user.id,
+    title: sermon.title,
+    config: sermon.config,
+    sermon_text: sermon.sermonText,
+    outline_text: sermon.outlineText,
+    slide_decks: sermon.slideDecks,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(error.message);
 }
 
-export function deleteSermon(id: string): void {
-  write(read().filter((s) => s.id !== id));
+export async function deleteSermon(id: string): Promise<void> {
+  const { error } = await supabase.from("sermons").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 export function newId(): string {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  return crypto.randomUUID();
 }

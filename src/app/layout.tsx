@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import UserMenu from "@/components/UserMenu";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,14 +17,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="text-lg font-bold text-brand-700">
               Ipreach
             </Link>
-            <Link href="/wizard" className="btn-primary">
-              Nuevo sermon
-            </Link>
+            <div className="flex items-center gap-4">
+              <UserMenu />
+              <Link href="/wizard" className="btn-primary">
+                Nuevo sermon
+              </Link>
+            </div>
           </div>
         </header>
         <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
         <footer className="mx-auto max-w-5xl px-4 py-8 text-xs text-stone-400">
-          Ipreach - MVP. Los sermones se guardan en este navegador.
+          Ipreach - MVP. Los sermones se guardan en tu cuenta.
         </footer>
       </body>
     </html>

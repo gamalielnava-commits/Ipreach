@@ -11,6 +11,10 @@ Aplicacion web para preparar sermones a nivel profesional con IA.
 - Generacion de bosquejo a partir del sermon.
 - Generacion de diapositivas con estilos prediseñados (Hillsong, Elevation,
   arcilla, comics, realista, cinematografico) y densidad corta/mediana/larga.
+- Exportacion del sermon a Word (.docx) y PDF, y de las diapositivas a
+  PowerPoint (.pptx).
+- Imagenes para redes sociales: sugiere frases del sermon y genera
+  imagenes con Gemini (requiere GOOGLE_API_KEY).
 
 Los sermones se guardan en el navegador (localStorage). El guardado en la
 nube con cuentas llega en la fase 2 (ver `supabase/migrations`).

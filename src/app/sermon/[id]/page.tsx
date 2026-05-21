@@ -1,15 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { slideDensities, slideStyles } from "@/lib/catalogs";
+import { exportPptx, exportWord } from "@/lib/export";
 import { slideImagePrompt } from "@/lib/prompt";
 import { getSermon, newId, saveSermon } from "@/lib/store";
-import type { Sermon, SlideDensity } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
+import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
 
-type Tab = "sermon" | "bosquejo" | "diapositivas";
+type Tab = "sermon" | "bosquejo" | "diapositivas" | "imagenes";
+
+interface SocialImage {
+  phrase: string;
+  style: string;
+  dataUrl: string;
+}
 
 export default function SermonPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const [sermon, setSermon] = useState<Sermon | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>("sermon");
@@ -17,15 +27,51 @@ export default function SermonPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState("");
   const [styleSlug, setStyleSlug] = useState(slideStyles[0].slug);
   const [density, setDensity] = useState<SlideDensity>("mediana");
+  const [phrases, setPhrases] = useState<string[]>([]);
+  const [phrase, setPhrase] = useState("");
+  const [imgStyle, setImgStyle] = useState(slideStyles[0].slug);
+  const [socialImages, setSocialImages] = useState<SocialImage[]>([]);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setSermon(getSermon(params.id) ?? null);
-    setLoaded(true);
-  }, [params.id]);
+    let active = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        router.replace("/login");
+        return;
+      }
+      try {
+        const s = await getSermon(params.id);
+        if (active) setSermon(s);
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "Error.");
+      }
+      if (active) setLoaded(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [params.id, router]);
 
   function persist(next: Sermon) {
     setSermon(next);
-    saveSermon(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveSermon(next).catch((e) =>
+        setError(e instanceof Error ? e.message : "No se pudo guardar."),
+      );
+    }, 1000);
+  }
+
+  async function persistNow(next: Sermon) {
+    setSermon(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    try {
+      await saveSermon(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo guardar.");
+    }
   }
 
   async function call(kind: string, extra: Record<string, unknown> = {}) {
@@ -46,7 +92,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     setBusy("sermon");
     try {
       const text = await call("sermon");
-      if (text) persist({ ...sermon, sermonText: text });
+      if (text) await persistNow({ ...sermon, sermonText: text });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error.");
     }
@@ -58,7 +104,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     setBusy("bosquejo");
     try {
       const text = await call("outline", { sermonText: sermon.sermonText });
-      if (text) persist({ ...sermon, outlineText: text });
+      if (text) await persistNow({ ...sermon, outlineText: text });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error.");
     }
@@ -75,7 +121,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
         slideDensity: density,
       });
       if (text) {
-        persist({
+        await persistNow({
           ...sermon,
           slideDecks: [
             {
@@ -94,6 +140,76 @@ export default function SermonPage({ params }: { params: { id: string } }) {
       setError(err instanceof Error ? err.message : "Error.");
     }
     setBusy("");
+  }
+
+  async function downloadWord() {
+    if (!sermon) return;
+    try {
+      await exportWord(sermon);
+    } catch {
+      setError("No se pudo generar el archivo Word.");
+    }
+  }
+
+  async function downloadPptx(deck: SlideDeck) {
+    if (!sermon) return;
+    try {
+      await exportPptx(sermon, deck);
+    } catch {
+      setError("No se pudo generar el archivo PowerPoint.");
+    }
+  }
+
+  async function suggestPhrases() {
+    if (!sermon) return;
+    setBusy("frases");
+    try {
+      const text = await call("phrases", { sermonText: sermon.sermonText });
+      if (text) {
+        const list = text
+          .split("\n")
+          .map((l) => l.replace(/^[\s\-*0-9.")]+/, "").trim())
+          .filter((l) => l.length > 0);
+        setPhrases(list);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error.");
+    }
+    setBusy("");
+  }
+
+  async function makeImage() {
+    if (!phrase.trim()) {
+      setError("Escribe o elige una frase para la imagen.");
+      return;
+    }
+    setBusy("imagen");
+    setError("");
+    try {
+      const res = await fetch("/api/image", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ phrase, style: imgStyle }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al generar la imagen.");
+      setSocialImages((imgs) => [
+        { phrase, style: imgStyle, dataUrl: data.image },
+        ...imgs,
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error.");
+    }
+    setBusy("");
+  }
+
+  function downloadImage(img: SocialImage) {
+    const a = document.createElement("a");
+    a.href = img.dataUrl;
+    a.download = "imagen-redes.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   if (!loaded) return <p className="text-sm text-stone-500">Cargando...</p>;
@@ -121,7 +237,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="flex gap-2 border-b border-stone-200">
-        {(["sermon", "bosquejo", "diapositivas"] as Tab[]).map((t) => (
+        {(["sermon", "bosquejo", "diapositivas", "imagenes"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -142,7 +258,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
 
       {tab === "sermon" && (
         <div className="space-y-3">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={regenerate}
               disabled={busy !== ""}
@@ -150,8 +266,17 @@ export default function SermonPage({ params }: { params: { id: string } }) {
             >
               {busy === "sermon" ? "Regenerando..." : "Regenerar"}
             </button>
+            <button onClick={downloadWord} className="btn-ghost">
+              Descargar Word
+            </button>
+            <button
+              onClick={() => window.open(`/sermon/${sermon.id}/print`, "_blank")}
+              className="btn-ghost"
+            >
+              Descargar PDF
+            </button>
             <span className="self-center text-xs text-stone-400">
-              Puedes editar el texto directamente; se guarda solo.
+              El texto se edita directamente y se guarda solo.
             </span>
           </div>
           <textarea
@@ -246,10 +371,18 @@ export default function SermonPage({ params }: { params: { id: string } }) {
 
           {sermon.slideDecks.map((deck) => (
             <div key={deck.id} className="card space-y-2">
-              <p className="text-sm font-semibold text-stone-700">
-                {slideStyles.find((s) => s.slug === deck.style)?.name} -{" "}
-                {deck.density}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-stone-700">
+                  {slideStyles.find((s) => s.slug === deck.style)?.name} -{" "}
+                  {deck.density}
+                </p>
+                <button
+                  onClick={() => downloadPptx(deck)}
+                  className="btn-ghost"
+                >
+                  Descargar PowerPoint
+                </button>
+              </div>
               <pre className="whitespace-pre-wrap rounded-lg bg-stone-50 p-3 text-sm">
                 {deck.text}
               </pre>
@@ -259,6 +392,94 @@ export default function SermonPage({ params }: { params: { id: string } }) {
                 </summary>
                 <p className="mt-1">{deck.imagePrompt}</p>
               </details>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "imagenes" && (
+        <div className="space-y-4">
+          <div className="card space-y-3">
+            <p className="text-sm text-stone-500">
+              Genera imagenes para redes sociales con frases del sermon.
+              Requiere Gemini configurado (GOOGLE_API_KEY).
+            </p>
+            <button
+              onClick={suggestPhrases}
+              disabled={busy !== ""}
+              className="btn-ghost"
+            >
+              {busy === "frases"
+                ? "Buscando frases..."
+                : "Sugerir frases del sermon"}
+            </button>
+            {phrases.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {phrases.map((p, i) => (
+                  <span
+                    key={i}
+                    onClick={() => setPhrase(p)}
+                    className={`chip ${phrase === p ? "chip-on" : "chip-off"}`}
+                  >
+                    {p}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div>
+              <label className="label">Frase para la imagen</label>
+              <textarea
+                className="field"
+                value={phrase}
+                onChange={(e) => setPhrase(e.target.value)}
+                placeholder="Escribe o elige una frase de arriba"
+              />
+            </div>
+            <div>
+              <label className="label">Estilo visual</label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {slideStyles.map((s) => (
+                  <button
+                    key={s.slug}
+                    onClick={() => setImgStyle(s.slug)}
+                    className={`rounded-lg border p-2 text-left text-sm ${
+                      imgStyle === s.slug
+                        ? "border-brand-600 bg-brand-50"
+                        : "border-stone-200 hover:border-stone-300"
+                    }`}
+                  >
+                    <span className="font-medium">{s.name}</span>
+                    <span className="block text-xs text-stone-500">
+                      {s.example}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={makeImage}
+              disabled={busy !== ""}
+              className="btn-primary"
+            >
+              {busy === "imagen" ? "Generando imagen..." : "Generar imagen"}
+            </button>
+          </div>
+
+          {socialImages.map((img, i) => (
+            <div key={i} className="card space-y-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.dataUrl}
+                alt={img.phrase}
+                className="w-full max-w-md rounded-lg"
+              />
+              <p className="text-xs text-stone-500">{img.phrase}</p>
+              <button
+                onClick={() => downloadImage(img)}
+                className="btn-ghost"
+              >
+                Descargar imagen
+              </button>
             </div>
           ))}
         </div>

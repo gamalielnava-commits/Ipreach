@@ -8,10 +8,8 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
   const [mode, setMode] = React.useState<"signin" | "signup">("signin");
 
   return (
-    <div style={{
+    <div className="login-grid" style={{
       position: "fixed", inset: 0, zIndex: 100,
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
       background: "var(--paper)",
     }}>
       <div style={{

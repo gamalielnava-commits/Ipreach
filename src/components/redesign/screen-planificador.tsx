@@ -67,7 +67,7 @@ export function PlanificadorScreen() {
         }
       />
 
-      <div style={{ flex: 1, overflow: "hidden", display: "grid", gridTemplateColumns: "1fr 320px" }}>
+      <div className="plan-grid" style={{ flex: 1, overflow: "auto" }}>
         <div style={{ padding: "20px 28px", overflowY: "auto" }}>
           <div className="row" style={{ marginBottom: 14 }}>
             <button className="btn-icon" onClick={() => changeMonth(-1)}>

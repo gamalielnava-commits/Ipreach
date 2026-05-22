@@ -27,7 +27,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
         backdropFilter: "blur(2px)", zIndex: 50,
       }} />
       <aside style={{
-        position: "fixed", right: 0, top: 0, bottom: 0, width: 400, zIndex: 60,
+        position: "fixed", right: 0, top: 0, bottom: 0, width: "min(400px, 100vw)", zIndex: 60,
         background: "var(--paper)", borderLeft: "1px solid var(--line)",
         boxShadow: "-20px 0 60px color-mix(in oklab, var(--ink) 18%, transparent)",
         display: "flex", flexDirection: "column",

@@ -113,7 +113,7 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
         <span className="eyebrow">Sugerencias para ti</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="sugg-grid">
         {SUGGESTIONS.map((s, i) => {
           const I = ICONS[s.icon] || IcSpark;
           return (

@@ -1,17 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import Link from "next/link";
-import UserMenu from "@/components/UserMenu";
 import "./globals.css";
+import "./ipreach.css";
 
 export const metadata: Metadata = {
-  title: "Ipreach - Preparacion de sermones",
+  title: "ipreach — estudio de predicación",
   description: "Prepara sermones a nivel profesional con IA.",
   manifest: "/manifest.webmanifest",
-  applicationName: "Ipreach",
+  applicationName: "ipreach",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Ipreach",
+    title: "ipreach",
   },
   icons: {
     icon: "/icon.svg",
@@ -20,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#6d28d9",
+  themeColor: "#7E8E4A",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -28,21 +27,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body>
-        <div className="flex min-h-[100dvh] flex-col">
-          <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-stone-200 bg-white/90 px-4 backdrop-blur">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-                I
-              </span>
-              <span className="text-base font-bold text-brand-700">Ipreach</span>
-            </Link>
-            <UserMenu />
-          </header>
-          <main className="flex-1">{children}</main>
-        </div>
-      </body>
+    <html lang="es" data-palette="capilla">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Serif+4:opsz,wght@8..60,400..700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Geist:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }

@@ -817,6 +817,28 @@ export const roles: CatalogItem[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// 13. TIPOS DE CONTENIDO
+// ---------------------------------------------------------------------------
+
+export const contentTypes: CatalogItem[] = [
+  {
+    slug: "sermon",
+    name: "Sermon",
+    description: "Mensaje para predicar en un servicio.",
+  },
+  {
+    slug: "devocional",
+    name: "Reflexion devocional",
+    description: "Meditacion breve y personal para edificar.",
+  },
+  {
+    slug: "clase",
+    name: "Clase de discipulado",
+    description: "Leccion para grupos pequenos con preguntas y dinamicas.",
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

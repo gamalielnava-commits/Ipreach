@@ -13,6 +13,14 @@ import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
 
 type Tab = "sermon" | "bosquejo" | "diapositivas" | "imagenes" | "biblia";
 
+const TAB_LABELS: Record<Tab, string> = {
+  sermon: "Texto",
+  bosquejo: "Bosquejo",
+  diapositivas: "Diapositivas",
+  imagenes: "Imagenes",
+  biblia: "Biblia",
+};
+
 interface SocialImage {
   phrase: string;
   style: string;
@@ -274,20 +282,20 @@ export default function SermonPage({ params }: { params: { id: string } }) {
         </p>
       </div>
 
-      <div className="flex gap-2 border-b border-stone-200">
+      <div className="flex gap-1 overflow-x-auto border-b border-stone-200">
         {(
           ["sermon", "bosquejo", "diapositivas", "imagenes", "biblia"] as Tab[]
         ).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium capitalize ${
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium ${
               tab === t
                 ? "border-brand-600 text-brand-700"
                 : "border-transparent text-stone-500 hover:text-stone-700"
             }`}
           >
-            {t}
+            {TAB_LABELS[t]}
           </button>
         ))}
       </div>

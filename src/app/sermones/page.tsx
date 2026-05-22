@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { contentTypes } from "@/lib/catalogs";
 import { deleteSermon, listSermons } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 import type { Sermon } from "@/lib/types";
+
+function typeName(slug: string | undefined): string {
+  return contentTypes.find((c) => c.slug === (slug || "sermon"))?.name ?? "Sermon";
+}
 
 export default function SermonesPage() {
   const router = useRouter();
@@ -47,7 +52,7 @@ export default function SermonesPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-stone-900">Mis sermones</h1>
+        <h1 className="text-xl font-bold text-stone-900">Mis creaciones</h1>
         <Link href="/" className="btn-ghost px-3 py-1.5">
           Ir al chat
         </Link>
@@ -71,12 +76,17 @@ export default function SermonesPage() {
           {sermons.map((s) => (
             <li key={s.id} className="card flex items-center justify-between">
               <div className="min-w-0">
-                <Link
-                  href={`/sermon/${s.id}`}
-                  className="font-medium text-brand-700 hover:underline"
-                >
-                  {s.title || "Sermon sin titulo"}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">
+                    {typeName(s.config.contentType)}
+                  </span>
+                  <Link
+                    href={`/sermon/${s.id}`}
+                    className="truncate font-medium text-brand-700 hover:underline"
+                  >
+                    {s.title || "Sin titulo"}
+                  </Link>
+                </div>
                 <p className="truncate text-xs text-stone-500">
                   {s.config.scripture || "Sin texto base"} -{" "}
                   {new Date(s.updatedAt).toLocaleDateString("es")}

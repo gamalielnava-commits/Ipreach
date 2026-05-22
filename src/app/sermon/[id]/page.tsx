@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { slideDensities, slideStyles } from "@/lib/catalogs";
+import { bibleVersions } from "@/lib/bible";
 import { exportPptx, exportWord } from "@/lib/export";
 import { slideImagePrompt } from "@/lib/prompt";
 import { getSermon, newId, saveSermon } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
 
-type Tab = "sermon" | "bosquejo" | "diapositivas" | "imagenes";
+type Tab = "sermon" | "bosquejo" | "diapositivas" | "imagenes" | "biblia";
 
 interface SocialImage {
   phrase: string;
@@ -31,6 +32,12 @@ export default function SermonPage({ params }: { params: { id: string } }) {
   const [phrase, setPhrase] = useState("");
   const [imgStyle, setImgStyle] = useState(slideStyles[0].slug);
   const [socialImages, setSocialImages] = useState<SocialImage[]>([]);
+  const [bibleRef, setBibleRef] = useState("");
+  const [bibleVersion, setBibleVersion] = useState(bibleVersions[0].code);
+  const [bibleResult, setBibleResult] = useState<{
+    reference: string;
+    text: string;
+  } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -212,6 +219,36 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     a.remove();
   }
 
+  async function lookupVerse() {
+    if (!bibleRef.trim()) {
+      setError("Escribe una referencia, por ejemplo: Juan 3:16");
+      return;
+    }
+    setBusy("biblia");
+    setError("");
+    setBibleResult(null);
+    try {
+      const res = await fetch("/api/bible", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reference: bibleRef, version: bibleVersion }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al buscar el pasaje.");
+      setBibleResult({ reference: data.reference, text: data.text });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error.");
+    }
+    setBusy("");
+  }
+
+  function insertVerse() {
+    if (!sermon || !bibleResult) return;
+    const block = `\n\n${bibleResult.reference} (${bibleVersion})\n"${bibleResult.text}"\n`;
+    persistNow({ ...sermon, sermonText: sermon.sermonText + block });
+    setTab("sermon");
+  }
+
   if (!loaded) return <p className="text-sm text-stone-500">Cargando...</p>;
   if (!sermon)
     return (
@@ -237,7 +274,9 @@ export default function SermonPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="flex gap-2 border-b border-stone-200">
-        {(["sermon", "bosquejo", "diapositivas", "imagenes"] as Tab[]).map((t) => (
+        {(
+          ["sermon", "bosquejo", "diapositivas", "imagenes", "biblia"] as Tab[]
+        ).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -482,6 +521,63 @@ export default function SermonPage({ params }: { params: { id: string } }) {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "biblia" && (
+        <div className="space-y-4">
+          <div className="card space-y-3">
+            <p className="text-sm text-stone-500">
+              Busca un pasaje y agregalo al sermon. La version RV1909 es de
+              dominio publico.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="label">Referencia</label>
+                <input
+                  className="field"
+                  value={bibleRef}
+                  onChange={(e) => setBibleRef(e.target.value)}
+                  placeholder="Ej. Juan 3:16 o Salmos 23"
+                />
+              </div>
+              <div>
+                <label className="label">Version</label>
+                <select
+                  className="field"
+                  value={bibleVersion}
+                  onChange={(e) => setBibleVersion(e.target.value)}
+                >
+                  {bibleVersions.map((v) => (
+                    <option key={v.code} value={v.code}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={lookupVerse}
+              disabled={busy !== ""}
+              className="btn-primary"
+            >
+              {busy === "biblia" ? "Buscando..." : "Buscar pasaje"}
+            </button>
+          </div>
+
+          {bibleResult && (
+            <div className="card space-y-3">
+              <p className="text-sm font-semibold text-brand-700">
+                {bibleResult.reference} ({bibleVersion})
+              </p>
+              <p className="font-serif leading-relaxed text-stone-800">
+                {bibleResult.text}
+              </p>
+              <button onClick={insertVerse} className="btn-ghost">
+                Insertar en el sermon
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

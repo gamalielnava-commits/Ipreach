@@ -40,3 +40,41 @@ export interface Sermon {
   outlineText: string;
   slideDecks: SlideDeck[];
 }
+
+export interface ProfileDefaults {
+  themes?: string[];
+  occasion?: string;
+  sermonTypes?: string[];
+  strategy?: string;
+  method?: string;
+  commentators?: string[];
+  illustrationKinds?: string[];
+  length?: LengthKey;
+  verseOption?: VerseOption;
+  provider?: Provider;
+  bibleVersion?: string;
+}
+
+export interface Profile {
+  id: string;
+  displayName: string;
+  role: string;
+  country: string;
+  framework: string;
+  defaults: ProfileDefaults;
+  onboarded: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+}

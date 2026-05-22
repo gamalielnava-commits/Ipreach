@@ -805,6 +805,18 @@ export const slideDensities = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// 12. ROLES DEL PREDICADOR (onboarding)
+// ---------------------------------------------------------------------------
+
+export const roles: CatalogItem[] = [
+  { slug: "pastor", name: "Pastor", description: "Lidera una congregacion." },
+  { slug: "predicador", name: "Predicador", description: "Predica con regularidad." },
+  { slug: "lider", name: "Lider o maestro", description: "Ensena en grupos o ministerios." },
+  { slug: "evangelista", name: "Evangelista", description: "Ministerio de evangelismo." },
+  { slug: "estudiante", name: "Estudiante", description: "Estudia teologia u homiletica." },
+];
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

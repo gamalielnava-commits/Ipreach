@@ -123,6 +123,20 @@ Usa subtitulos claros. El resultado debe estar listo para revisar y predicar.`;
   return { system: SYSTEM_BASE, user };
 }
 
+export function buildChatSystemPrompt(config: SermonConfig): string {
+  return `${SYSTEM_BASE}
+
+Estas conversando con un predicador en un chat. Responde sus preguntas sobre homiletica, Biblia, teologia y preparacion de sermones de forma clara, pastoral y util.
+
+Cuando el usuario te pida preparar, crear o mejorar un sermon, redacta el sermon COMPLETO en tu respuesta con esta estructura: titulo, texto biblico base, idea central, introduccion, cuerpo con divisiones y subpuntos, ilustraciones, aplicacion practica y conclusion con llamado. Respeta el marco doctrinal y los filtros activos.
+
+Contexto del usuario y filtros activos:
+${frameworkBlock(config)}
+${configBlock(config)}
+
+Se breve cuando la pregunta es breve; extenso solo cuando se pide un sermon o un desarrollo.`;
+}
+
 export function buildOutlineMessages(
   config: SermonConfig,
   sermonText: string,

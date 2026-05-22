@@ -74,7 +74,7 @@ export default function PrintPage({ params }: { params: { id: string } }) {
   if (!sermon) return <p className="text-sm text-stone-500">Sermon no encontrado.</p>;
 
   return (
-    <div className="mx-auto max-w-3xl font-serif leading-relaxed text-stone-900">
+    <div className="mx-auto max-w-3xl px-4 py-6 font-serif leading-relaxed text-stone-900">
       <button onClick={() => window.print()} className="btn-primary no-print mb-6">
         Imprimir / Guardar como PDF
       </button>

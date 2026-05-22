@@ -47,7 +47,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm">
+    <div className="mx-auto max-w-sm px-4 py-10">
       <div className="card space-y-4">
         <h1 className="text-xl font-bold text-stone-900">
           {mode === "login" ? "Iniciar sesion" : "Crear cuenta"}

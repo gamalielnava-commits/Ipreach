@@ -249,19 +249,20 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     setTab("sermon");
   }
 
-  if (!loaded) return <p className="text-sm text-stone-500">Cargando...</p>;
+  if (!loaded)
+    return <p className="p-6 text-sm text-stone-500">Cargando...</p>;
   if (!sermon)
     return (
-      <div className="card">
+      <div className="card mx-auto mt-6 max-w-md">
         <p className="text-stone-600">No se encontro este sermon.</p>
         <Link href="/" className="btn-ghost mt-3">
-          Volver al inicio
+          Volver al chat
         </Link>
       </div>
     );
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
       <div>
         <input
           className="w-full bg-transparent text-2xl font-bold text-stone-900 outline-none"

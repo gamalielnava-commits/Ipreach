@@ -24,14 +24,15 @@ import type {
 
 const SUGGESTIONS = [
   "Preparame un sermon sobre la fe que vence el temor",
-  "Como hago un bosquejo expositivo paso a paso?",
-  "Dame ideas para el Dia de la Madre",
-  "Explicame el metodo PEICA con un ejemplo",
+  "Escribe una reflexion devocional sobre el Salmo 23",
+  "Prepara una clase de discipulado sobre la oracion",
+  "Dame ideas para predicar el Dia de la Madre",
 ];
 
 function configFromProfile(p: Profile): SermonConfig {
   const d = p.defaults || {};
   return {
+    contentType: "sermon",
     idea: "",
     scripture: "",
     framework: p.framework || frameworks[0].slug,
@@ -259,7 +260,8 @@ export default function ChatPage() {
                   Hola{profile?.displayName ? `, ${profile.displayName}` : ""}
                 </h2>
                 <p className="text-sm text-stone-500">
-                  Preguntame lo que quieras o pideme que prepare un sermon.
+                  Preguntame lo que quieras, o pideme un sermon, una reflexion
+                  devocional o una clase de discipulado.
                 </p>
               </div>
               <div className="flex flex-col gap-2 text-left">
@@ -291,7 +293,7 @@ export default function ChatPage() {
                     onClick={() => saveAsSermon(m.content)}
                     className="btn-ghost ml-1 px-3 py-1.5 text-xs"
                   >
-                    Abrir como sermon
+                    Guardar y abrir (diapositivas, imagenes, exportar)
                   </button>
                 )}
               </div>

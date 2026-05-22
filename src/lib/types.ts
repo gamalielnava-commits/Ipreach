@@ -5,6 +5,7 @@ export type SlideDensity = "corta" | "mediana" | "larga";
 export type GenerateKind = "sermon" | "outline" | "slides" | "phrases";
 
 export interface SermonConfig {
+  contentType: string;
   idea: string;
   scripture: string;
   framework: string;

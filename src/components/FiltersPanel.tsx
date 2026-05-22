@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import {
   commentators,
+  contentTypes,
   doctrinalThemes,
   frameworks,
   illustrationKinds,
@@ -20,6 +21,24 @@ function toggle(list: string[], value: string, max?: number): string[] {
   if (list.includes(value)) return list.filter((v) => v !== value);
   if (max && list.length >= max) return [...list.slice(1), value];
   return [...list, value];
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group rounded-xl border border-stone-200 bg-white">
+      <summary className="flex cursor-pointer select-none items-center justify-between px-3 py-2.5 text-sm font-semibold text-stone-700">
+        {title}
+        <span className="text-stone-400 transition group-open:rotate-180">v</span>
+      </summary>
+      <div className="border-t border-stone-100 p-3">{children}</div>
+    </details>
+  );
 }
 
 interface Props {
@@ -58,29 +77,45 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
         }`}
       />
       <div
-        className={`absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-stone-50 shadow-2xl transition-transform ${
+        className={`absolute right-0 top-0 flex h-full w-full max-w-sm flex-col bg-stone-50 shadow-2xl transition-transform ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3">
-          <h2 className="font-bold text-stone-900">Filtros del sermon</h2>
-          <button onClick={onClose} className="btn-ghost px-3 py-1.5">
+          <h2 className="font-bold text-stone-900">Filtros</h2>
+          <button onClick={onClose} className="btn-primary px-3 py-1.5">
             Listo
           </button>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto p-4">
-          <p className="text-xs text-stone-500">
-            Estos filtros guian al asistente. Se aplican a tu proximo sermon y
-            puedes cambiarlos cuando quieras.
-          </p>
+        <div className="flex-1 space-y-2.5 overflow-y-auto p-3">
+          <div className="rounded-xl border border-stone-200 bg-white p-3">
+            <label className="label">Que quieres preparar</label>
+            <div className="flex flex-wrap gap-1.5">
+              {contentTypes.map((c) => (
+                <span
+                  key={c.slug}
+                  onClick={() => set({ contentType: c.slug })}
+                  className={`chip ${
+                    (config.contentType || "sermon") === c.slug
+                      ? "chip-on"
+                      : "chip-off"
+                  }`}
+                >
+                  {c.name}
+                </span>
+              ))}
+            </div>
+          </div>
 
-          <div>
+          <div className="rounded-xl border border-stone-200 bg-white p-3">
             <label className="label">Marco doctrinal</label>
             <select
               className="field"
               value={config.framework}
-              onChange={(e) => set({ framework: e.target.value, doctrinalThemes: [] })}
+              onChange={(e) =>
+                set({ framework: e.target.value, doctrinalThemes: [] })
+              }
             >
               {frameworks.map((f) => (
                 <option key={f.slug} value={f.slug}>
@@ -91,8 +126,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
           </div>
 
           {denomThemes.length > 0 && (
-            <div>
-              <label className="label">Enfasis doctrinales</label>
+            <Section title="Enfasis doctrinales">
               <div className="flex flex-wrap gap-1.5">
                 {denomThemes.map((t) => (
                   <span
@@ -108,11 +142,10 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                   </span>
                 ))}
               </div>
-            </div>
+            </Section>
           )}
 
-          <div>
-            <label className="label">Temas</label>
+          <Section title="Temas">
             <div className="space-y-2">
               {themeCategories.map((g) => (
                 <div key={g.category}>
@@ -135,10 +168,9 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                 </div>
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div>
-            <label className="label">Motivo / ocasion</label>
+          <Section title="Motivo / ocasion">
             <select
               className="field"
               value={config.occasion}
@@ -151,10 +183,9 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                 </option>
               ))}
             </select>
-          </div>
+          </Section>
 
-          <div>
-            <label className="label">Tipo de sermon (hasta 2)</label>
+          <Section title="Tipo de sermon">
             <div className="flex flex-wrap gap-1.5">
               {sermonTypes.map((t) => (
                 <span
@@ -170,9 +201,9 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                 </span>
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div>
+          <Section title="Estrategia y metodo">
             <label className="label">Estrategia</label>
             <select
               className="field"
@@ -186,10 +217,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                 </option>
               ))}
             </select>
-          </div>
-
-          <div>
-            <label className="label">Metodo de preparacion</label>
+            <label className="label mt-3">Metodo de preparacion</label>
             <select
               className="field"
               value={config.method}
@@ -202,10 +230,9 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                 </option>
               ))}
             </select>
-          </div>
+          </Section>
 
-          <div>
-            <label className="label">Comentaristas</label>
+          <Section title="Comentaristas">
             <div className="flex flex-wrap gap-1.5">
               {commentators.map((c) => (
                 <span
@@ -221,10 +248,9 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                 </span>
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div>
-            <label className="label">Ilustraciones</label>
+          <Section title="Ilustraciones">
             <div className="flex flex-wrap gap-1.5">
               {illustrationKinds.map((k) => (
                 <span
@@ -244,43 +270,42 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                 </span>
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Longitud</label>
-              <select
-                className="field"
-                value={config.length}
-                onChange={(e) => set({ length: e.target.value as LengthKey })}
-              >
-                {lengths.map((l) => (
-                  <option key={l.key} value={l.key}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
+          <Section title="Longitud, versiculos y modelo">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Longitud</label>
+                <select
+                  className="field"
+                  value={config.length}
+                  onChange={(e) => set({ length: e.target.value as LengthKey })}
+                >
+                  {lengths.map((l) => (
+                    <option key={l.key} value={l.key}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Versiculos</label>
+                <select
+                  className="field"
+                  value={config.verseOption}
+                  onChange={(e) =>
+                    set({ verseOption: e.target.value as VerseOption })
+                  }
+                >
+                  {verseOptions.map((v) => (
+                    <option key={v.key} value={v.key}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="label">Versiculos</label>
-              <select
-                className="field"
-                value={config.verseOption}
-                onChange={(e) =>
-                  set({ verseOption: e.target.value as VerseOption })
-                }
-              >
-                {verseOptions.map((v) => (
-                  <option key={v.key} value={v.key}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="label">Modelo de IA</label>
+            <label className="label mt-3">Modelo de IA</label>
             <div className="flex gap-2">
               {(["claude", "gemini"] as Provider[]).map((p) => (
                 <span
@@ -294,7 +319,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                 </span>
               ))}
             </div>
-          </div>
+          </Section>
         </div>
       </div>
     </div>

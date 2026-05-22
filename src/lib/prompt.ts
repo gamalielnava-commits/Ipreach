@@ -102,39 +102,61 @@ function configBlock(config: SermonConfig): string {
   return lines.join("\n");
 }
 
+export function contentStructure(contentType: string): {
+  label: string;
+  structure: string;
+} {
+  if (contentType === "devocional") {
+    return {
+      label: "una reflexion devocional",
+      structure:
+        "1. Titulo\n2. Texto biblico breve\n3. Reflexion personal y meditativa (3 a 5 parrafos)\n4. Una aplicacion practica para hoy\n5. Una oracion breve para cerrar",
+    };
+  }
+  if (contentType === "clase") {
+    return {
+      label: "una clase de discipulado",
+      structure:
+        "1. Titulo de la clase\n2. Texto o tema base\n3. Objetivos de aprendizaje\n4. Introduccion para captar interes\n5. Desarrollo en puntos de ensenanza con sus explicaciones\n6. Preguntas para la discusion en grupo\n7. Una actividad o dinamica practica\n8. Conclusion y una tarea para la semana",
+    };
+  }
+  return {
+    label: "un sermon",
+    structure:
+      "1. Titulo\n2. Texto biblico base\n3. Idea central (una sola frase)\n4. Introduccion\n5. Cuerpo con divisiones principales y subpuntos (aplica el metodo y la estrategia)\n6. Ilustraciones integradas en los puntos\n7. Aplicacion practica\n8. Conclusion con llamado",
+  };
+}
+
 export function buildSermonMessages(config: SermonConfig): Messages {
-  const user = `Prepara un sermon completo con los siguientes parametros.
+  const { label, structure } = contentStructure(config.contentType || "sermon");
+  const user = `Prepara ${label} completo con los siguientes parametros.
 
 ${frameworkBlock(config)}
 
 ${configBlock(config)}
 
-Entrega el sermon con esta estructura:
-1. Titulo del sermon
-2. Texto biblico base
-3. Idea central (una sola frase)
-4. Introduccion
-5. Cuerpo con divisiones principales y subpuntos (aplica el metodo y la estrategia indicados)
-6. Ilustraciones integradas en los puntos
-7. Aplicacion practica
-8. Conclusion con llamado
+Entrega el contenido con esta estructura:
+${structure}
 
-Usa subtitulos claros. El resultado debe estar listo para revisar y predicar.`;
+Usa subtitulos claros. El resultado debe estar listo para revisar y usar.`;
   return { system: SYSTEM_BASE, user };
 }
 
 export function buildChatSystemPrompt(config: SermonConfig): string {
+  const { label, structure } = contentStructure(config.contentType || "sermon");
   return `${SYSTEM_BASE}
 
-Estas conversando con un predicador en un chat. Responde sus preguntas sobre homiletica, Biblia, teologia y preparacion de sermones de forma clara, pastoral y util.
+Estas conversando con un predicador en un chat. Responde sus preguntas sobre homiletica, Biblia, teologia y preparacion de contenido de forma clara, pastoral y util.
 
-Cuando el usuario te pida preparar, crear o mejorar un sermon, redacta el sermon COMPLETO en tu respuesta con esta estructura: titulo, texto biblico base, idea central, introduccion, cuerpo con divisiones y subpuntos, ilustraciones, aplicacion practica y conclusion con llamado. Respeta el marco doctrinal y los filtros activos.
+El tipo de contenido activo es: ${label}. Cuando el usuario te pida preparar, crear o mejorar contenido, redactalo COMPLETO en tu respuesta con esta estructura:
+${structure}
+Respeta el marco doctrinal y los filtros activos.
 
 Contexto del usuario y filtros activos:
 ${frameworkBlock(config)}
 ${configBlock(config)}
 
-Se breve cuando la pregunta es breve; extenso solo cuando se pide un sermon o un desarrollo.`;
+Se breve cuando la pregunta es breve; extenso solo cuando se pide preparar contenido.`;
 }
 
 export function buildOutlineMessages(

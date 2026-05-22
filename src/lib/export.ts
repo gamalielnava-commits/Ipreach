@@ -97,31 +97,69 @@ export async function exportWord(sermon: Sermon): Promise<void> {
   download(blob, fileName(sermon.title, "docx"));
 }
 
+interface PptxTheme {
+  bg: string;
+  title: string;
+  body: string;
+  accent: string;
+}
+
+const pptxThemes: Record<string, PptxTheme> = {
+  hillsong: { bg: "1E1B4B", title: "FFFFFF", body: "E0E7FF", accent: "818CF8" },
+  "elevation-worship": {
+    bg: "0A0A0A",
+    title: "FFFFFF",
+    body: "D4D4D4",
+    accent: "F59E0B",
+  },
+  arcilla: { bg: "FDF2F8", title: "9D174D", body: "57534E", accent: "F9A8D4" },
+  comics: { bg: "FEF9C3", title: "1E3A8A", body: "1C1917", accent: "EF4444" },
+  realista: { bg: "F5F5F4", title: "1C1917", body: "44403C", accent: "A8A29E" },
+  cinematografico: {
+    bg: "0C0A09",
+    title: "FAFAF9",
+    body: "A8A29E",
+    accent: "B91C1C",
+  },
+};
+
+function themeFor(style: string): PptxTheme {
+  return pptxThemes[style] ?? pptxThemes.realista;
+}
+
 export async function exportPptx(sermon: Sermon, deck: SlideDeck): Promise<void> {
   const pptxgen = (await import("pptxgenjs")).default;
   const pptx = new pptxgen();
   pptx.layout = "LAYOUT_WIDE";
+  const theme = themeFor(deck.style);
 
-  const title = pptx.addSlide();
-  title.background = { color: "1C1917" };
-  title.addText(sermon.title || "Sermon", {
-    x: 0.5,
-    y: 2.4,
-    w: 12.3,
-    h: 1.6,
+  const cover = pptx.addSlide();
+  cover.background = { color: theme.bg };
+  cover.addShape(pptx.ShapeType.rect, {
+    x: 0,
+    y: 3.05,
+    w: 13.33,
+    h: 0.06,
+    fill: { color: theme.accent },
+  });
+  cover.addText(sermon.title || "Sermon", {
+    x: 0.8,
+    y: 2.0,
+    w: 11.7,
+    h: 1.1,
     fontSize: 40,
     bold: true,
-    color: "FFFFFF",
+    color: theme.title,
     align: "center",
   });
   if (sermon.config.scripture) {
-    title.addText(sermon.config.scripture, {
-      x: 0.5,
-      y: 4.1,
-      w: 12.3,
+    cover.addText(sermon.config.scripture, {
+      x: 0.8,
+      y: 3.3,
+      w: 11.7,
       h: 0.8,
       fontSize: 22,
-      color: "C4B5FD",
+      color: theme.accent,
       align: "center",
     });
   }
@@ -140,24 +178,33 @@ export async function exportPptx(sermon: Sermon, deck: SlideDeck): Promise<void>
     const slideTitle = cleanInline(lines[0] || "Diapositiva");
     const body = lines.slice(1).map(cleanInline).join("\n");
     const slide = pptx.addSlide();
+    slide.background = { color: theme.bg };
+    slide.addShape(pptx.ShapeType.rect, {
+      x: 0.5,
+      y: 1.32,
+      w: 1.4,
+      h: 0.09,
+      fill: { color: theme.accent },
+    });
     slide.addText(slideTitle, {
       x: 0.5,
-      y: 0.4,
+      y: 0.45,
       w: 12.3,
-      h: 1,
+      h: 0.85,
       fontSize: 28,
       bold: true,
-      color: "5B21B6",
+      color: theme.title,
     });
     if (body) {
       slide.addText(body, {
-        x: 0.6,
-        y: 1.6,
-        w: 12.1,
+        x: 0.55,
+        y: 1.65,
+        w: 12.2,
         h: 5.4,
         fontSize: 18,
-        color: "1C1917",
+        color: theme.body,
         valign: "top",
+        lineSpacingMultiple: 1.15,
       });
     }
   }

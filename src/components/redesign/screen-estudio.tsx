@@ -3,8 +3,27 @@ import React from "react";
 import { TopBar } from "./shell";
 import { SUGGESTIONS, SAVED } from "./data";
 import { ICONS, IcSpark, IcBook, IcBookmark, IcCross, IcChevron, IcSliders, IcUser, IcRefresh, IcCopy, IcShare, IcArrowUp, IcAttach, IcMic } from "./icons";
+import type { SermonConfig } from "@/lib/types";
 
 type Message = { role: "user" | "ai"; text: string; id: number };
+
+const DEFAULT_CONFIG: SermonConfig = {
+  contentType: "sermon",
+  idea: "",
+  scripture: "",
+  framework: "asambleas-de-dios",
+  doctrinalThemes: [],
+  themes: [],
+  occasion: "",
+  sermonTypes: ["expositivo"],
+  strategy: "idea-central",
+  method: "peica",
+  commentators: [],
+  illustrationKinds: [],
+  length: "medio",
+  verseOption: "solo-cita",
+  provider: "claude",
+};
 
 export function EstudioScreen({ onOpenSermon, onOpenFilters }: { onOpenSermon: () => void; onOpenFilters: () => void }) {
   const [messages, setMessages] = React.useState<Message[]>([]);
@@ -16,20 +35,34 @@ export function EstudioScreen({ onOpenSermon, onOpenFilters }: { onOpenSermon: (
     if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, sending]);
 
-  function send(text?: string) {
+  async function send(text?: string) {
     const t = (text ?? input).trim();
     if (!t) return;
-    setMessages((m) => [...m, { role: "user", text: t, id: Date.now() }]);
+    const userMsg: Message = { role: "user", text: t, id: Date.now() };
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
     setSending(true);
-    setTimeout(() => {
-      setMessages((m) => [...m, {
-        role: "ai",
-        text: `Trabajemos sobre eso. Aquí va una primera dirección:\n\nIdea central: ${t.toLowerCase().includes("fe") ? "La fe no es ausencia de temblor; es el suelo invisible que aparece bajo el pie justo cuando das el paso." : "Buscamos una sola idea, clara y memorable, que sostenga todo el mensaje."}\n\n¿Quieres que lo desarrolle como expositivo de Hebreos 11, o prefieres un tópico que cruce varios pasajes?`,
-        id: Date.now() + 1,
-      }]);
-      setSending(false);
-    }, 950);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          config: DEFAULT_CONFIG,
+          messages: history.map((m) => ({
+            role: m.role === "ai" ? "assistant" : "user",
+            content: m.text,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Error generando respuesta.");
+      setMessages((m) => [...m, { role: "ai", text: data.text ?? "", id: Date.now() + 1 }]);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "Error de red.";
+      setMessages((m) => [...m, { role: "ai", text: `⚠️ ${err}`, id: Date.now() + 1 }]);
+    }
+    setSending(false);
   }
 
   return (

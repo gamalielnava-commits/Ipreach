@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import BottomNav from "@/components/BottomNav";
 import { slideDensities, slideStyles } from "@/lib/catalogs";
 import { bibleVersions } from "@/lib/bible";
 import { exportPptx, exportWord } from "@/lib/export";
@@ -270,7 +271,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     );
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
+    <div className="mx-auto max-w-3xl space-y-5 px-4 pt-6 pb-20 md:pb-6">
       <div>
         <input
           className="w-full bg-transparent text-2xl font-bold text-stone-900 outline-none"
@@ -282,7 +283,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
         </p>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-stone-200">
+      <div className="sticky top-14 z-10 -mx-4 flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4">
         {(
           ["sermon", "bosquejo", "diapositivas", "imagenes", "biblia"] as Tab[]
         ).map((t) => (
@@ -464,13 +465,13 @@ export default function SermonPage({ params }: { params: { id: string } }) {
             {phrases.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {phrases.map((p, i) => (
-                  <span
+                  <button
                     key={i}
                     onClick={() => setPhrase(p)}
                     className={`chip ${phrase === p ? "chip-on" : "chip-off"}`}
                   >
                     {p}
-                  </span>
+                  </button>
                 ))}
               </div>
             )}
@@ -589,6 +590,8 @@ export default function SermonPage({ params }: { params: { id: string } }) {
           )}
         </div>
       )}
+
+      <BottomNav />
     </div>
   );
 }

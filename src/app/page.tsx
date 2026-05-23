@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import BottomNav from "@/components/BottomNav";
 import FiltersPanel from "@/components/FiltersPanel";
 import { frameworks } from "@/lib/catalogs";
 import {
@@ -227,7 +228,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
+    <div className="flex h-[calc(100dvh-7.5rem)] flex-col md:h-[calc(100dvh-3.5rem)]">
       <div className="flex items-center gap-2 border-b border-stone-200 bg-white px-3 py-2">
         <button
           onClick={() => setShowSidebar(true)}
@@ -399,6 +400,7 @@ export default function ChatPage() {
         open={showFilters}
         onClose={() => setShowFilters(false)}
       />
+      <BottomNav />
     </div>
   );
 }

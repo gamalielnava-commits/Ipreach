@@ -195,8 +195,8 @@ export function SermonScreen({
           {tab === "texto" && <TextoTab sermon={sermon} onChange={(txt) => setSermon({ ...sermon, sermonText: txt })} />}
           {tab === "bosquejo" && <BosquejoTab sermon={sermon} onChange={(txt) => setSermon({ ...sermon, outlineText: txt })} onRegenerate={handleGenerateOutline} generating={generatingOutline} />}
           {tab === "diapositivas" && <DiapositivasTab sermon={sermon} setSermon={setSermon} />}
-          {tab === "imagenes" && <ImagenesTab />}
-          {tab === "biblia" && <BibliaTab />}
+          {tab === "imagenes" && <ImagenesTab sermon={sermon} setSermon={setSermon} />}
+          {tab === "biblia" && <BibliaTab sermon={sermon} setSermon={setSermon} />}
         </div>
       </div>
     </div>
@@ -555,9 +555,78 @@ function DiapositivasTab({
 }
 
 /* ---------- Imágenes ---------- */
-function ImagenesTab() {
+function ImagenesTab({
+  sermon,
+  setSermon,
+}: {
+  sermon: Sermon;
+  setSermon: React.Dispatch<React.SetStateAction<Sermon | null>>;
+}) {
+  const [phrases, setPhrases] = React.useState<string[]>(PHRASES_SAMPLE);
+  const [loadingPhrases, setLoadingPhrases] = React.useState(false);
   const [phrase, setPhrase] = React.useState(PHRASES_SAMPLE[0]);
   const [imgStyle, setImgStyle] = React.useState("cine");
+  const [generating, setGenerating] = React.useState(false);
+  const [generatedImages, setGeneratedImages] = React.useState<string[]>([]);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    if (!sermon.sermonText) return;
+    (async () => {
+      setLoadingPhrases(true);
+      try {
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: "phrases",
+            config: sermon.config,
+            sermonText: sermon.sermonText,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const list = data.text
+            .split("\n")
+            .map((x: string) => x.replace(/^\d+\.\s*/, "").replace(/^[-*•]\s*/, "").trim())
+            .filter(Boolean)
+            .slice(0, 4);
+          if (list.length > 0) {
+            setPhrases(list);
+            setPhrase(list[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Error al cargar frases:", err);
+      } finally {
+        setLoadingPhrases(false);
+      }
+    })();
+  }, [sermon.sermonText]);
+
+  async function handleGenerateImages() {
+    if (!phrase) return;
+    setGenerating(true);
+    setError("");
+    setGeneratedImages([]);
+    try {
+      const res = await fetch("/api/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phrase, style: imgStyle }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "No se pudo generar la imagen.");
+      }
+      const data = await res.json();
+      setGeneratedImages([data.image, data.image, data.image, data.image]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   return (
     <div className="col" style={{ gap: 22 }}>
@@ -568,23 +637,27 @@ function ImagenesTab() {
         </p>
 
         <div className="eyebrow" style={{ marginBottom: 8 }}>Frases sugeridas</div>
-        <div className="col" style={{ gap: 8 }}>
-          {PHRASES_SAMPLE.map((p, i) => (
-            <button key={i}
-              onClick={() => setPhrase(p)}
-              className="sugg"
-              style={{
-                padding: "12px 14px",
-                borderColor: phrase === p ? "var(--accent)" : "var(--line)",
-                background: phrase === p ? "color-mix(in oklab, var(--accent) 6%, var(--paper-2))" : undefined,
-              }}>
-              <div className="sugg-icon" style={{ width: 28, height: 28 }}>
-                <IcType size={14} />
-              </div>
-              <span className="serif" style={{ fontSize: 15, fontStyle: "italic" }}>{p}</span>
-            </button>
-          ))}
-        </div>
+        {loadingPhrases ? (
+          <p className="ui muted" style={{ fontSize: 13 }}>Cargando frases sugeridas...</p>
+        ) : (
+          <div className="col" style={{ gap: 8 }}>
+            {phrases.map((p, i) => (
+              <button key={i}
+                onClick={() => setPhrase(p)}
+                className="sugg"
+                style={{
+                  padding: "12px 14px",
+                  borderColor: phrase === p ? "var(--accent)" : "var(--line)",
+                  background: phrase === p ? "color-mix(in oklab, var(--accent) 6%, var(--paper-2))" : undefined,
+                }}>
+                <div className="sugg-icon" style={{ width: 28, height: 28 }}>
+                  <IcType size={14} />
+                </div>
+                <span className="serif" style={{ fontSize: 15, fontStyle: "italic" }}>{p}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="eyebrow" style={{ marginTop: 18, marginBottom: 8 }}>Estilo visual</div>
         <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
@@ -597,50 +670,108 @@ function ImagenesTab() {
           ))}
         </div>
 
-        <div className="row" style={{ justifyContent: "flex-end", marginTop: 18 }}>
-          <button className="btn btn-accent"><IcSpark size={14} /> Generar 4 variaciones</button>
+        <div className="row" style={{ justifyContent: "flex-end", marginTop: 18, gap: 12, alignItems: "center" }}>
+          {error && <span style={{ color: "#E11D48", fontSize: 13 }}>⚠️ {error}</span>}
+          <button className="btn btn-accent" onClick={handleGenerateImages} disabled={generating || !phrase}>
+            <IcSpark size={14} /> {generating ? "Generando..." : "Generar 4 variaciones"}
+          </button>
         </div>
       </div>
 
-      <h3 className="sec-title" style={{ fontSize: 19 }}>Generadas · 4</h3>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
-        {SLIDE_STYLES.slice(0, 4).map((s) => (
-          <div key={s.slug} className="col" style={{ gap: 8 }}>
-            <div className={"slide-tile " + s.cls} style={{ aspectRatio: "1/1", padding: 28 }}>
-              <small>frase</small>
-              <div style={{ fontSize: 18, lineHeight: 1.3, fontStyle: "italic", maxWidth: "90%" }}>
-                {phrase}
+      <h3 className="sec-title" style={{ fontSize: 19 }}>Generadas · {generatedImages.length}</h3>
+      {generatedImages.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px", border: "1px dashed var(--line)", borderRadius: "var(--r-md)", color: "var(--ink-3)" }}>
+          Elige una frase y haz clic en "Generar 4 variaciones" para crear imágenes con IA.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+          {generatedImages.map((imgData, i) => {
+            const s = SLIDE_STYLES[i % SLIDE_STYLES.length];
+            return (
+              <div key={i} className="col" style={{ gap: 8 }}>
+                <div style={{ aspectRatio: "1/1", position: "relative", borderRadius: "var(--r-md)", overflow: "hidden", border: "1px solid var(--line)" }}>
+                  <img src={imgData} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="Visual" />
+                  <div style={{ position: "absolute", bottom: 10, left: 10, right: 10, padding: "8px 12px", background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", borderRadius: 6, color: "#fff", fontSize: 11, fontStyle: "italic" }}>
+                    “{phrase}”
+                  </div>
+                </div>
+                <div className="row" style={{ justifyContent: "space-between" }}>
+                  <span className="ui muted" style={{ fontSize: 11 }}>{s.name} · 1080×1080</span>
+                  <div className="row" style={{ gap: 4 }}>
+                    <a href={imgData} download={`ipreach-img-${i + 1}.png`} className="btn-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <IcDownload size={14} />
+                    </a>
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: 9, opacity: 0.7, marginTop: 8, letterSpacing: ".1em", textTransform: "uppercase" }}>
-                ipreach · {s.name}
-              </div>
-            </div>
-            <div className="row" style={{ justifyContent: "space-between" }}>
-              <span className="ui muted" style={{ fontSize: 11 }}>{s.name} · 1080×1080</span>
-              <div className="row" style={{ gap: 4 }}>
-                <button className="btn-icon"><IcRefresh size={14} /></button>
-                <button className="btn-icon"><IcDownload size={14} /></button>
-                <button className="btn-icon"><IcShare size={14} /></button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 /* ---------- Biblia ---------- */
-function BibliaTab() {
+function BibliaTab({
+  sermon,
+  setSermon,
+}: {
+  sermon: Sermon;
+  setSermon: React.Dispatch<React.SetStateAction<Sermon | null>>;
+}) {
   const [version, setVersion] = React.useState("RVR1960");
   const [query, setQuery] = React.useState("Hebreos 11:1-3");
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState<{ reference: string; version: string; text: string } | null>({
+    reference: VERSE_PREVIEW.reference,
+    version: VERSE_PREVIEW.version,
+    text: VERSE_PREVIEW.text,
+  });
+  const [error, setError] = React.useState("");
+
   const verses: [string, string][] = [
     ["Hebreos 11:1", "Es, pues, la fe la certeza de lo que se espera, la convicción de lo que no se ve."],
     ["Hebreos 11:6", "Sin fe es imposible agradar a Dios; porque es necesario que el que se acerca…"],
     ["Salmo 23:4", "Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo."],
-    ["Génesis 12:1", "Vete de tu tierra y de tu parentela, y de la casa de tu padre, a la tierra que te mostraré."],
+    ["Génesis 12:1", "Vete de tu tierra y de tu parentela, y de la casa de padre, a la tierra que te mostraré."],
     ["Romanos 10:17", "Así que la fe es por el oír, y el oír, por la palabra de Dios."],
   ];
+
+  async function handleSearch() {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/bible", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference: query, version }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "No se pudo obtener el pasaje.");
+      }
+      const data = await res.json();
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message);
+      setResult(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleInsert() {
+    if (!result) return;
+    const toInsert = `\n\n> **${result.reference} (${result.version})**\n> ${result.text}\n\n`;
+    setSermon({
+      ...sermon,
+      sermonText: sermon.sermonText + toInsert,
+    });
+    alert("Pasaje insertado al final del manuscrito.");
+  }
+
   return (
     <div className="col" style={{ gap: 22 }}>
       <div className="card-flat" style={{ padding: 22 }}>
@@ -653,53 +784,57 @@ function BibliaTab() {
           <div style={{ flex: 1 }}>
             <div className="eyebrow" style={{ marginBottom: 6 }}>Versión</div>
             <select className="field" value={version} onChange={(e) => setVersion(e.target.value)}>
-              <option>RVR1960</option>
-              <option>RV1909</option>
-              <option>NVI</option>
-              <option>LBLA</option>
-              <option>NTV</option>
+              <option value="RVR1960">RVR1960</option>
+              <option value="RV1909">RV1909</option>
+              <option value="NVI">NVI</option>
+              <option value="LBLA">LBLA</option>
+              <option value="NTV">NTV</option>
             </select>
           </div>
-          <button className="btn btn-accent"><IcSearch size={14} /> Buscar</button>
+          <button className="btn btn-accent" onClick={handleSearch} disabled={loading}>
+            <IcSearch size={14} /> {loading ? "Buscando..." : "Buscar"}
+          </button>
         </div>
       </div>
 
-      <div className="passage-card">
-        <span className="versemark">“</span>
-        <div className="row" style={{ gap: 10, marginBottom: 12 }}>
-          <span className="ui" style={{
-            fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase",
-            color: "var(--accent)", fontWeight: 700,
-          }}>{VERSE_PREVIEW.reference} · {VERSE_PREVIEW.version}</span>
-          <span className="pill pill-quiet">Dominio público</span>
+      {error && (
+        <div style={{ color: "#E11D48", fontSize: 13, background: "rgba(225,29,72,0.1)", padding: "10px 14px", borderRadius: 8 }}>
+          ⚠️ {error}
         </div>
-        <p className="serif" style={{ fontSize: 19, lineHeight: 1.7, color: "var(--ink)", fontStyle: "italic" }}>
-          {VERSE_PREVIEW.text}
-        </p>
-        <div className="row" style={{ gap: 6, marginTop: 16 }}>
-          <button className="btn btn-accent btn-sm"><IcPlus size={14} /> Insertar en el sermón</button>
-          <button className="btn btn-ghost btn-sm"><IcCopy size={14} /> Copiar</button>
-          <button className="btn btn-ghost btn-sm"><IcBookmark size={14} /> Marcar</button>
-          <span className="spacer" />
-          <button className="btn-quiet" style={{ fontSize: 11 }}>Comparar versiones <IcChevron size={12} /></button>
+      )}
+
+      {result && (
+        <div className="passage-card">
+          <span className="versemark">“</span>
+          <div className="row" style={{ gap: 10, marginBottom: 12 }}>
+            <span className="ui" style={{
+              fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase",
+              color: "var(--accent)", fontWeight: 700,
+            }}>{result.reference} · {result.version}</span>
+            <span className="pill pill-quiet">Biblia Online</span>
+          </div>
+          <p className="serif" style={{ fontSize: 19, lineHeight: 1.7, color: "var(--ink)", fontStyle: "italic" }}>
+            {result.text}
+          </p>
+          <div className="row" style={{ gap: 6, marginTop: 16 }}>
+            <button className="btn btn-accent btn-sm" onClick={handleInsert}><IcPlus size={14} /> Insertar en el sermón</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard.writeText(`"${result.text}" (${result.reference})`)}><IcCopy size={14} /> Copiar</button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
-          <h3 className="sec-title" style={{ fontSize: 18 }}>Pasajes citados en este sermón</h3>
-          <button className="btn-quiet" style={{ fontSize: 11 }}>Ver todos · 14</button>
+          <h3 className="sec-title" style={{ fontSize: 18 }}>Pasajes citados sugeridos</h3>
         </div>
         <div className="card-flat" style={{ padding: "4px 22px" }}>
           {verses.map(([ref, txt]) => (
             <div key={ref} className="verse-row">
-              <span className="verse-ref">{ref}</span>
+              <span className="verse-ref" style={{ cursor: "pointer" }} onClick={() => { setQuery(ref); setVersion("RVR1960"); }}>{ref}</span>
               <div>
                 <p className="serif" style={{ fontSize: 15, color: "var(--ink-2)", fontStyle: "italic" }}>“{txt}”</p>
                 <div className="row" style={{ gap: 4, marginTop: 4 }}>
-                  <button className="btn-quiet" style={{ fontSize: 11 }}>Ir al manuscrito</button>
-                  <span className="muted">·</span>
-                  <button className="btn-quiet" style={{ fontSize: 11 }}>Comentarios</button>
+                  <button className="btn-quiet" style={{ fontSize: 11 }} onClick={() => { setQuery(ref); handleSearch(); }}>Buscar pasaje</button>
                 </div>
               </div>
             </div>

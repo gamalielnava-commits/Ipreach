@@ -1271,23 +1271,173 @@ kbd {
   display: grid; place-items: center;
 }
 
-/* =========================================================================
-   Mobile responsive — collapse desktop sidebar on small screens
-   ========================================================================= */
-@media (max-width: 767px) {
-  .app {
-    grid-template-columns: 1fr;
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
+/* ============================================================
+   Responsive — iPhone / tablet portrait
+   ============================================================ */
+
+/* New classes that the redesign uses for mobile reflow */
+.login-grid       { display: grid; grid-template-columns: 1fr 1fr; }
+.plan-grid        { display: grid; grid-template-columns: 1fr 320px; }
+.presenter-grid   { display: grid; grid-template-columns: 62% 38%; }
+.sugg-grid        { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.series-card-grid { display: grid; grid-template-columns: 240px 1fr; gap: 24px; }
+.marca-grid-2     { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.marca-grid-3     { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.marca-grid-4     { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.sermon-head      { padding: 22px 32px 14px; border-bottom: 1px solid var(--line); }
+.movil-stage      { padding: 32px 24px; }
+
+.menu-btn { display: none; }
+.sidebar-backdrop { display: none; }
+
+@media (max-width: 900px) {
+  .plan-grid { grid-template-columns: 1fr; grid-template-rows: auto auto; }
+}
+
+@media (max-width: 720px) {
+  /* Shell — sidebar becomes an off-canvas drawer */
+  .app,
   .app.with-rail {
     grid-template-columns: 1fr;
   }
   .sidebar {
-    display: none;
+    position: fixed; top: 0; bottom: 0; left: 0;
+    width: 280px; max-width: 88vw;
+    z-index: 75;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    box-shadow: 6px 0 30px color-mix(in oklab, var(--ink) 20%, transparent);
   }
-  body {
-    overflow-x: hidden;
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-backdrop {
+    display: none;
+    position: fixed; inset: 0; z-index: 70;
+    background: color-mix(in oklab, var(--ink) 35%, transparent);
+    backdrop-filter: blur(2px);
+  }
+  .sidebar-backdrop.open { display: block; }
+  .menu-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    position: fixed; top: 10px; left: 10px; z-index: 76;
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: color-mix(in oklab, var(--paper) 85%, transparent);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+  }
+
+  /* Topbar */
+  .topbar {
+    padding: 0 12px 0 56px; /* leave room for the hamburger FAB */
+    height: 52px;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .topbar .sec-title { font-size: 18px; }
+
+  /* Featured + library cards */
+  .featured-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+  .featured-thumb { width: 96px; }
+  .lib-card {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    padding: 14px;
+  }
+  .lib-card .lib-thumb { max-width: 140px; align-self: flex-start; }
+
+  /* Bubbles + composer */
+  .bubble { max-width: 92%; font-size: 15px; padding: 12px 14px; }
+  .composer { padding: 10px 12px 14px; }
+  .composer-inner { padding: 6px 8px 6px 12px; }
+  .composer-chips {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+  .composer-chips::-webkit-scrollbar { display: none; }
+
+  /* Tabs already scroll horizontally — tighten padding */
+  .tabs { padding: 0 12px; gap: 16px; }
+
+  /* Meta strip + section paddings */
+  .meta-strip { gap: 4px 12px; font-size: 11px; }
+  .passage-card { padding: 16px; }
+  .card-flat, .card { padding: 16px; }
+
+  /* Sermon header + body padding */
+  .sermon-head { padding: 14px 16px 10px; }
+  .sermon-head h1 { font-size: 26px !important; }
+  .sermon-head p.serif { font-size: 14.5px !important; }
+
+  /* Login: stack vertically */
+  .login-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: 100dvh;
+  }
+  .login-grid > div:first-child {
+    padding: 24px 22px !important;
+    min-height: auto;
+  }
+  .login-grid > div:first-child blockquote {
+    font-size: 22px !important;
+  }
+  .login-grid > div:nth-child(2) {
+    padding: 22px !important;
+  }
+
+  /* Planificador: stack rail under calendar (already covered at 900px) */
+  .plan-grid > aside { border-left: 0; border-top: 1px solid var(--line); }
+
+  /* Suggestions grid → single column */
+  .sugg-grid { grid-template-columns: 1fr; }
+
+  /* Series card cover above content */
+  .series-card-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .series-card-grid > .slide-tile {
+    aspect-ratio: 3/2 !important;
+    max-height: 200px;
+  }
+
+  /* Marca grids */
+  .marca-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .marca-grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .marca-grid-2 { grid-template-columns: 1fr; }
+
+  /* Móvil stage */
+  .movil-stage { padding: 16px 12px; gap: 24px !important; }
+
+  /* Presenter stacks vertically */
+  .presenter-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(280px, 1fr) auto;
+  }
+  .presenter-grid > div { border-right: 0 !important; border-bottom: 1px solid rgba(255,255,255,.08); }
+
+  /* Print pages */
+  .print-page-shrink {
+    padding: 28px 22px !important;
+    min-height: auto !important;
   }
 }
+
+@media (max-width: 480px) {
+  .marca-grid-3 { grid-template-columns: 1fr; }
+  .marca-grid-4 { grid-template-columns: 1fr; }
+
+  /* Hide overly long topbar hints */
+  .topbar .ui.muted { display: none; }
+  .topbar .sec-title { font-size: 17px; }
+
+  /* Smaller display */
+  .display { letter-spacing: -0.01em; }
+}
+

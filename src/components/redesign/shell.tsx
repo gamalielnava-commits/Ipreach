@@ -32,7 +32,7 @@ export function Wordmark() {
 type Conversation = { id: string; title: string; date: string; active?: boolean };
 
 export function Sidebar({
-  screen, setScreen, conversations, activeConv, setActiveConv, profile,
+  screen, setScreen, conversations, activeConv, setActiveConv, profile, open = false, onClose,
 }: {
   screen: Screen;
   setScreen: (s: Screen) => void;
@@ -40,50 +40,53 @@ export function Sidebar({
   activeConv: string;
   setActiveConv: (id: string) => void;
   profile?: { displayName: string; role: string } | null;
+  open?: boolean;
+  onClose?: () => void;
 }) {
+  const go = (s: Screen) => { setScreen(s); onClose?.(); };
   return (
-    <aside className="sidebar">
+    <aside className={"sidebar " + (open ? "open" : "")}>
       <Wordmark />
 
       <div style={{ padding: "0 12px 8px" }}>
         <button className="btn btn-accent" style={{ width: "100%", justifyContent: "center" }}
-          onClick={() => setScreen("estudio")}>
+          onClick={() => go("estudio")}>
           <IcPlus size={16} /> Nuevo estudio
         </button>
       </div>
 
       <div className="side-heading">Navegación</div>
       <nav style={{ padding: "0 12px" }}>
-        <button className={"nav-item " + (screen === "estudio" ? "active" : "")} onClick={() => setScreen("estudio")}>
+        <button className={"nav-item " + (screen === "estudio" ? "active" : "")} onClick={() => go("estudio")}>
           <IcChat size={16} /> Estudio
           <span className="spacer" />
           <kbd>⌘1</kbd>
         </button>
-        <button className={"nav-item " + (screen === "biblioteca" ? "active" : "")} onClick={() => setScreen("biblioteca")}>
+        <button className={"nav-item " + (screen === "biblioteca" ? "active" : "")} onClick={() => go("biblioteca")}>
           <IcLibrary size={16} /> Biblioteca
           <span className="spacer" />
           <span className="ui" style={{ fontSize: 11, color: "var(--ink-4)" }}>24</span>
         </button>
-        <button className={"nav-item " + (screen === "sermon" ? "active" : "")} onClick={() => setScreen("sermon")}>
+        <button className={"nav-item " + (screen === "sermon" ? "active" : "")} onClick={() => go("sermon")}>
           <IcBook size={16} /> Sermón actual
           <span className="spacer" />
         </button>
-        <button className={"nav-item " + (screen === "series" ? "active" : "")} onClick={() => setScreen("series")}>
+        <button className={"nav-item " + (screen === "series" ? "active" : "")} onClick={() => go("series")}>
           <IcSlide size={16} /> Series
           <span className="spacer" />
           <span className="ui" style={{ fontSize: 11, color: "var(--ink-4)" }}>3</span>
         </button>
-        <button className={"nav-item " + (screen === "planificador" ? "active" : "")} onClick={() => setScreen("planificador")}>
+        <button className={"nav-item " + (screen === "planificador" ? "active" : "")} onClick={() => go("planificador")}>
           <IcCalendar size={16} /> Planificador
           <span className="spacer" />
           <span className="pill" style={{ fontSize: 9, padding: "2px 6px" }}>Dom</span>
         </button>
-        <button className={"nav-item " + (screen === "movil" ? "active" : "")} onClick={() => setScreen("movil")}>
+        <button className={"nav-item " + (screen === "movil" ? "active" : "")} onClick={() => go("movil")}>
           <IcShare size={16} /> Móvil
           <span className="spacer" />
           <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>iOS · Android</span>
         </button>
-        <button className={"nav-item " + (screen === "marca" ? "active" : "")} onClick={() => setScreen("marca")}>
+        <button className={"nav-item " + (screen === "marca" ? "active" : "")} onClick={() => go("marca")}>
           <IcStar size={16} /> Marca
           <span className="spacer" />
           <span className="pill" style={{ fontSize: 9, padding: "2px 6px" }}>Nuevo</span>
@@ -103,7 +106,7 @@ export function Sidebar({
         {conversations.map((c) => (
           <button key={c.id}
             className={"nav-item " + (activeConv === c.id ? "active" : "")}
-            onClick={() => { setActiveConv(c.id); setScreen("estudio"); }}>
+            onClick={() => { setActiveConv(c.id); go("estudio"); }}>
             <span style={{
               width: 6, height: 6, borderRadius: 999,
               background: activeConv === c.id ? "var(--accent)" : "var(--ink-4)",

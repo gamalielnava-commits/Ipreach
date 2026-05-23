@@ -55,7 +55,7 @@ export function MarcaScreen() {
             <p className="serif muted" style={{ fontSize: 15, fontStyle: "italic", marginBottom: 22, maxWidth: 560 }}>
               Tres elementos en uno: la página abierta sostiene la cruz; sobre ella, la pequeña llama del Espíritu corona el conjunto. Mismo gesto, tres lecturas.
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+            <div className="marca-grid-4">
               {([
                 ["Libro abierto", "book"],
                 ["Más cruz", "cross"],
@@ -77,7 +77,7 @@ export function MarcaScreen() {
           <section style={{ marginBottom: 40 }}>
             <span className="eyebrow">Variantes del logotipo</span>
             <h2 className="sec-title" style={{ marginBottom: 22, fontSize: 26 }}>Cinco bloques · un sistema</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            <div className="marca-grid-3">
               <LogoCard label="Lockup horizontal" sub="Uso principal" bg="var(--paper)">
                 <LogoPrimary scale={1} />
               </LogoCard>
@@ -102,7 +102,7 @@ export function MarcaScreen() {
           <section style={{ marginBottom: 40 }}>
             <span className="eyebrow">Sobre superficies</span>
             <h2 className="sec-title" style={{ marginBottom: 22, fontSize: 26 }}>Comportamiento en contexto</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <div className="marca-grid-3">
               <LogoCard label="Sobre crema" sub="Versión por defecto" bg="var(--paper)" big>
                 <LogoPrimary scale={1.1} />
               </LogoCard>
@@ -187,7 +187,7 @@ export function MarcaScreen() {
           <section style={{ marginBottom: 40 }}>
             <span className="eyebrow">Firma con tagline</span>
             <h2 className="sec-title" style={{ marginBottom: 22, fontSize: 26 }}>Acompañamientos opcionales</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="marca-grid-2">
               <LogoCard label="Firma con tagline" sub="Editorial · papel membretado" bg="var(--paper)">
                 <div style={{ textAlign: "center" }}>
                   <LogoPrimary scale={1} />
@@ -210,7 +210,7 @@ export function MarcaScreen() {
           <section style={{ marginBottom: 40 }}>
             <span className="eyebrow">Buenas prácticas</span>
             <h2 className="sec-title" style={{ marginBottom: 22, fontSize: 26 }}>Sí · no</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+            <div className="marca-grid-4">
               <DoCard ok label="Espacio mínimo">
                 <LogoPrimary scale={0.8} />
                 <div style={{ position: "absolute", inset: 0, border: "1px dashed color-mix(in oklab, var(--accent) 40%, transparent)", margin: 22, borderRadius: 8, pointerEvents: "none" }} />

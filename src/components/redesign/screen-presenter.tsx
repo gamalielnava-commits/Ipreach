@@ -119,7 +119,7 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "62% 38%", overflow: "hidden" }}>
+      <div className="presenter-grid" style={{ overflow: "hidden" }}>
         <div style={{ padding: 26, display: "flex", flexDirection: "column", borderRight: "1px solid rgba(255,255,255,.08)" }}>
           <div className="row" style={{ marginBottom: 10, gap: 10 }}>
             <span style={{ fontSize: 10.5, letterSpacing: ".18em", textTransform: "uppercase", color: "rgba(240,232,213,.5)", fontWeight: 600 }}>

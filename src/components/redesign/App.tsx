@@ -2,7 +2,7 @@
 import React from "react";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { Sidebar, Screen } from "./shell";
-import { CONVERSATIONS } from "./data";
+import { IcMenu } from "./icons";
 import { EstudioScreen } from "./screen-estudio";
 import { BibliotecaScreen } from "./screen-biblioteca";
 import { SermonScreen } from "./screen-sermon";
@@ -21,7 +21,6 @@ import { PlanesScreen } from "./screen-planes";
 import { getProfile } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/types";
-
 import type { SermonConfig } from "@/lib/types";
 import { listConversations } from "@/lib/chat";
 
@@ -38,6 +37,7 @@ export default function App() {
   
   const [activeSermonId, setActiveSermonId] = React.useState<string | null>(null);
   const [conversations, setConversations] = React.useState<any[]>([]);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [config, setConfig] = React.useState<SermonConfig>({
     contentType: "sermon",
     idea: "",
@@ -129,6 +129,17 @@ export default function App() {
 
   return (
     <div className="app" data-screen-label={screen}>
+      <button
+        className="menu-btn"
+        aria-label="Abrir menú"
+        onClick={() => setSidebarOpen((o) => !o)}
+      >
+        <IcMenu size={18} />
+      </button>
+      <div
+        className={"sidebar-backdrop " + (sidebarOpen ? "open" : "")}
+        onClick={() => setSidebarOpen(false)}
+      />
       <Sidebar
         screen={screen}
         setScreen={setScreen}
@@ -136,6 +147,8 @@ export default function App() {
         activeConv={activeConv}
         setActiveConv={setActiveConv}
         profile={profile}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
       {screen === "estudio" && (
         <EstudioScreen

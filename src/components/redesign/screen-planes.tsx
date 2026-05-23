@@ -4,9 +4,7 @@ import { TopBar } from "./shell";
 import { IcCheck, IcArrowRight, IcSpark } from "./icons";
 import type { Profile } from "@/lib/types";
 
-const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? (process.env.STRIPE_PRO_PRICE_ID ?? "")
-  : "";
+const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ?? "";
 
 const GRATIS_FEATURES = [
   "3 sermones IA al mes",
@@ -29,8 +27,8 @@ export function PlanesScreen({ profile }: { profile: Profile | null }) {
   const [busy, setBusy] = React.useState<"checkout" | "portal" | null>(null);
   const [error, setError] = React.useState("");
   const isPro = profile?.subscriptionStatus === "pro";
-  const priceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ?? PRO_PRICE_ID;
-  const stripeConfigured = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+  const priceId = PRO_PRICE_ID;
+  const stripeConfigured = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) && Boolean(PRO_PRICE_ID);
 
   async function subscribe() {
     setBusy("checkout");

@@ -71,6 +71,7 @@ export interface Profile {
   stripeCustomerId?: string;
   subscriptionStatus: SubscriptionStatus;
   subscriptionEndsAt?: string;
+  isAdmin: boolean;
 }
 
 export interface Conversation {

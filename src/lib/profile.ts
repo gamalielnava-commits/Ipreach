@@ -14,6 +14,7 @@ interface Row {
   stripe_customer_id?: string;
   subscription_status?: string;
   subscription_ends_at?: string;
+  is_admin?: boolean;
 }
 
 function toProfile(r: Row): Profile {
@@ -30,6 +31,7 @@ function toProfile(r: Row): Profile {
     stripeCustomerId: r.stripe_customer_id,
     subscriptionStatus: (r.subscription_status as SubscriptionStatus) ?? "free",
     subscriptionEndsAt: r.subscription_ends_at,
+    isAdmin: r.is_admin ?? false,
   };
 }
 
@@ -45,7 +47,7 @@ export async function getProfile(): Promise<Profile | null> {
   return data ? toProfile(data as Row) : null;
 }
 
-type ProfileInput = Omit<Profile, "id" | "stripeCustomerId" | "subscriptionStatus" | "subscriptionEndsAt">;
+type ProfileInput = Omit<Profile, "id" | "stripeCustomerId" | "subscriptionStatus" | "subscriptionEndsAt" | "isAdmin">;
 
 export async function saveProfile(profile: ProfileInput): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();

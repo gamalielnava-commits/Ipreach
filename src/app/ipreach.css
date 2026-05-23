@@ -1270,3 +1270,24 @@ kbd {
   font-size: 12px;
   display: grid; place-items: center;
 }
+
+/* =========================================================================
+   Mobile responsive — collapse desktop sidebar on small screens
+   ========================================================================= */
+@media (max-width: 767px) {
+  .app {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .app.with-rail {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    display: none;
+  }
+  body {
+    overflow-x: hidden;
+  }
+}

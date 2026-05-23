@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   commentators,
   contentTypes,
@@ -30,14 +30,24 @@ function Section({
   title: string;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
   return (
-    <details className="group rounded-xl border border-stone-200 bg-white">
-      <summary className="flex cursor-pointer select-none items-center justify-between px-3 py-2.5 text-sm font-semibold text-stone-700">
+    <div className="rounded-xl border border-stone-200 bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full cursor-pointer select-none items-center justify-between px-3 py-2.5 text-sm font-semibold text-stone-700"
+      >
         {title}
-        <span className="text-stone-400 transition group-open:rotate-180">v</span>
-      </summary>
-      <div className="border-t border-stone-100 p-3">{children}</div>
-    </details>
+        <span
+          className="text-stone-400 transition-transform duration-200"
+          style={{ display: "inline-block", transform: open ? "rotate(180deg)" : "none" }}
+        >
+          ▾
+        </span>
+      </button>
+      {open && <div className="border-t border-stone-100 p-3">{children}</div>}
+    </div>
   );
 }
 
@@ -83,7 +93,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
       >
         <div className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3">
           <h2 className="font-bold text-stone-900">Filtros</h2>
-          <button onClick={onClose} className="btn-primary px-3 py-1.5">
+          <button type="button" onClick={onClose} className="btn-primary px-3 py-1.5">
             Listo
           </button>
         </div>
@@ -93,7 +103,8 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
             <label className="label">Que quieres preparar</label>
             <div className="flex flex-wrap gap-1.5">
               {contentTypes.map((c) => (
-                <span
+                <button
+                  type="button"
                   key={c.slug}
                   onClick={() => set({ contentType: c.slug })}
                   className={`chip ${
@@ -103,7 +114,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                   }`}
                 >
                   {c.name}
-                </span>
+                </button>
               ))}
             </div>
           </div>
@@ -129,7 +140,8 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
             <Section title="Enfasis doctrinales">
               <div className="flex flex-wrap gap-1.5">
                 {denomThemes.map((t) => (
-                  <span
+                  <button
+                    type="button"
                     key={t}
                     onClick={() =>
                       set({ doctrinalThemes: toggle(config.doctrinalThemes, t) })
@@ -139,7 +151,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                     }`}
                   >
                     {t}
-                  </span>
+                  </button>
                 ))}
               </div>
             </Section>
@@ -154,7 +166,8 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {g.items.map((t) => (
-                      <span
+                      <button
+                        type="button"
                         key={t.slug}
                         onClick={() => set({ themes: toggle(config.themes, t.slug) })}
                         className={`chip ${
@@ -162,7 +175,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                         }`}
                       >
                         {t.name}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -188,7 +201,8 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
           <Section title="Tipo de sermon">
             <div className="flex flex-wrap gap-1.5">
               {sermonTypes.map((t) => (
-                <span
+                <button
+                  type="button"
                   key={t.slug}
                   onClick={() =>
                     set({ sermonTypes: toggle(config.sermonTypes, t.slug, 2) })
@@ -198,7 +212,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                   }`}
                 >
                   {t.name}
-                </span>
+                </button>
               ))}
             </div>
           </Section>
@@ -235,7 +249,8 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
           <Section title="Comentaristas">
             <div className="flex flex-wrap gap-1.5">
               {commentators.map((c) => (
-                <span
+                <button
+                  type="button"
                   key={c.slug}
                   onClick={() =>
                     set({ commentators: toggle(config.commentators, c.slug) })
@@ -245,7 +260,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                   }`}
                 >
                   {c.name}
-                </span>
+                </button>
               ))}
             </div>
           </Section>
@@ -253,7 +268,8 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
           <Section title="Ilustraciones">
             <div className="flex flex-wrap gap-1.5">
               {illustrationKinds.map((k) => (
-                <span
+                <button
+                  type="button"
                   key={k.slug}
                   onClick={() =>
                     set({
@@ -267,7 +283,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                   }`}
                 >
                   {k.name}
-                </span>
+                </button>
               ))}
             </div>
           </Section>
@@ -308,7 +324,8 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
             <label className="label mt-3">Modelo de IA</label>
             <div className="flex gap-2">
               {(["claude", "gemini"] as Provider[]).map((p) => (
-                <span
+                <button
+                  type="button"
                   key={p}
                   onClick={() => set({ provider: p })}
                   className={`chip ${
@@ -316,7 +333,7 @@ export default function FiltersPanel({ config, onChange, open, onClose }: Props)
                   }`}
                 >
                   {p === "claude" ? "Claude (Opus)" : "Gemini"}
-                </span>
+                </button>
               ))}
             </div>
           </Section>

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
+import Link from "next/link";
+import UserMenu from "@/components/UserMenu";
 import "./ipreach.css";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ipreach — estudio de predicación",
@@ -36,7 +38,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <div className="flex min-h-[100dvh] flex-col">
+          <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-stone-200 bg-white/90 px-4 backdrop-blur">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">
+                i
+              </span>
+              <span className="text-base font-bold text-brand-700">ipreach</span>
+            </Link>
+            <UserMenu />
+          </header>
+          <main className="flex-1">{children}</main>
+        </div>
+      </body>
     </html>
   );
 }

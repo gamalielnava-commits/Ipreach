@@ -392,6 +392,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
               <div className="flex flex-wrap gap-2">
                 {slideDensities.map((d) => (
                   <button
+                    type="button"
                     key={d.key}
                     onClick={() => setDensity(d.key)}
                     className={`chip ${
@@ -466,6 +467,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
               <div className="flex flex-wrap gap-1.5">
                 {phrases.map((p, i) => (
                   <button
+                    type="button"
                     key={i}
                     onClick={() => setPhrase(p)}
                     className={`chip ${phrase === p ? "chip-on" : "chip-off"}`}

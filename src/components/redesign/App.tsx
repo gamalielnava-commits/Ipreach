@@ -22,6 +22,9 @@ import { getProfile } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/types";
 
+import type { SermonConfig } from "@/lib/types";
+import { listConversations } from "@/lib/chat";
+
 export default function App() {
   const isMobile = useIsMobile();
   const [screen, setScreen] = React.useState<Screen>("estudio");
@@ -32,6 +35,44 @@ export default function App() {
   const [presenterOpen, setPresenterOpen] = React.useState(false);
   const [printOpen, setPrintOpen] = React.useState(false);
   const [profile, setProfile] = React.useState<Profile | null>(null);
+  
+  const [activeSermonId, setActiveSermonId] = React.useState<string | null>(null);
+  const [conversations, setConversations] = React.useState<any[]>([]);
+  const [config, setConfig] = React.useState<SermonConfig>({
+    contentType: "sermon",
+    idea: "",
+    scripture: "",
+    framework: "Bautista",
+    doctrinalThemes: [],
+    themes: ["Fe", "Temor"],
+    occasion: "Servicio dominical",
+    sermonTypes: ["Expositivo"],
+    strategy: "Idea central (Robinson)",
+    method: "robinson",
+    commentators: ["Tim Keller"],
+    illustrationKinds: [],
+    length: "medio",
+    verseOption: "solo-cita",
+    provider: "claude",
+  });
+
+  const loadConversations = React.useCallback(async () => {
+    try {
+      const list = await listConversations();
+      setConversations(list);
+      if (list.length > 0 && activeConv === "c1") {
+        setActiveConv(list[0].id);
+      }
+    } catch (err) {
+      console.error("Error cargando conversaciones:", err);
+    }
+  }, [activeConv]);
+
+  React.useEffect(() => {
+    if (profile) {
+      loadConversations();
+    }
+  }, [profile, loadConversations]);
 
   React.useEffect(() => {
     document.documentElement.dataset.palette = "capilla";
@@ -42,15 +83,23 @@ export default function App() {
   }, []);
 
   React.useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) return;
-      const p = await getProfile();
-      if (p) {
-        setProfile(p);
-        if (!p.onboarded) setOnboardingOpen(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        setLoginOpen(false);
+        const p = await getProfile();
+        if (p) {
+          setProfile(p);
+          if (!p.onboarded) setOnboardingOpen(true);
+        } else {
+          setOnboardingOpen(true);
+        }
+      } else {
+        setProfile(null);
+        setConversations([]);
+        setLoginOpen(true);
       }
-    })();
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   React.useEffect(() => {
@@ -73,7 +122,7 @@ export default function App() {
           setScreen={setScreen}
           onOpenFilters={() => setFiltersOpen(true)}
         />
-        <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} />
+        <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} config={config} setConfig={setConfig} />
       </>
     );
   }
@@ -83,14 +132,40 @@ export default function App() {
       <Sidebar
         screen={screen}
         setScreen={setScreen}
-        conversations={CONVERSATIONS}
+        conversations={conversations}
         activeConv={activeConv}
         setActiveConv={setActiveConv}
         profile={profile}
       />
-      {screen === "estudio" && <EstudioScreen onOpenSermon={() => setScreen("sermon")} onOpenFilters={() => setFiltersOpen(true)} />}
-      {screen === "biblioteca" && <BibliotecaScreen onOpenSermon={() => setScreen("sermon")} />}
-      {screen === "sermon" && <SermonScreen onOpenFilters={() => setFiltersOpen(true)} onPresent={() => setPresenterOpen(true)} onPrint={() => setPrintOpen(true)} />}
+      {screen === "estudio" && (
+        <EstudioScreen
+          activeConvId={activeConv && activeConv !== "c1" ? activeConv : null}
+          setActiveConvId={setActiveConv}
+          onOpenSermon={(sermonId) => {
+            setActiveSermonId(sermonId);
+            setScreen("sermon");
+          }}
+          onOpenFilters={() => setFiltersOpen(true)}
+          config={config}
+          onRefreshConvs={loadConversations}
+        />
+      )}
+      {screen === "biblioteca" && (
+        <BibliotecaScreen
+          onOpenSermon={(sermonId) => {
+            setActiveSermonId(sermonId);
+            setScreen("sermon");
+          }}
+        />
+      )}
+      {screen === "sermon" && (
+        <SermonScreen
+          sermonId={activeSermonId}
+          onOpenFilters={() => setFiltersOpen(true)}
+          onPresent={() => setPresenterOpen(true)}
+          onPrint={() => setPrintOpen(true)}
+        />
+      )}
       {screen === "series" && <SeriesScreen onOpenSermon={() => setScreen("sermon")} />}
       {screen === "planificador" && <PlanificadorScreen />}
       {screen === "movil" && <MovilScreen />}
@@ -98,7 +173,7 @@ export default function App() {
       {screen === "perfil" && <PerfilScreen onBack={() => setScreen("estudio")} onProfileSaved={setProfile} />}
       {screen === "planes" && <PlanesScreen profile={profile} />}
 
-      <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} />
+      <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} config={config} setConfig={setConfig} />
       <OnboardingModal open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
       {loginOpen && <LoginScreen onSignIn={() => setLoginOpen(false)} />}
       {presenterOpen && <PresenterScreen onClose={() => setPresenterOpen(false)} />}

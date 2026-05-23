@@ -3,33 +3,183 @@ import React from "react";
 import { TopBar } from "./shell";
 import { SUGGESTIONS, SAVED } from "./data";
 import { ICONS, IcSpark, IcBook, IcBookmark, IcCross, IcChevron, IcSliders, IcUser, IcRefresh, IcCopy, IcShare, IcArrowUp, IcAttach, IcMic } from "./icons";
+import type { SermonConfig } from "@/lib/types";
+import { listMessages, addMessage, createConversation } from "@/lib/chat";
+import { saveSermon, newId } from "@/lib/store";
 
-type Message = { role: "user" | "ai"; text: string; id: number };
+type Message = { role: "user" | "ai"; text: string; id: any };
 
-export function EstudioScreen({ onOpenSermon, onOpenFilters }: { onOpenSermon: () => void; onOpenFilters: () => void }) {
+export function EstudioScreen({
+  activeConvId,
+  setActiveConvId,
+  onOpenSermon,
+  onOpenFilters,
+  config,
+  onRefreshConvs,
+}: {
+  activeConvId: string | null;
+  setActiveConvId: (id: string) => void;
+  onOpenSermon: (sermonId: string) => void;
+  onOpenFilters: () => void;
+  config: SermonConfig;
+  onRefreshConvs: () => void;
+}) {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState("");
   const [sending, setSending] = React.useState(false);
+  const [loadingMsg, setLoadingMsg] = React.useState(false);
   const endRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, sending]);
 
-  function send(text?: string) {
+  React.useEffect(() => {
+    if (!activeConvId) {
+      setMessages([]);
+      return;
+    }
+    (async () => {
+      setLoadingMsg(true);
+      try {
+        const list = await listMessages(activeConvId);
+        setMessages(list.map((m) => ({ role: m.role === "assistant" ? "ai" : "user", text: m.content, id: m.id })));
+      } catch (err) {
+        console.error("Error cargando mensajes:", err);
+      } finally {
+        setLoadingMsg(false);
+      }
+    })();
+  }, [activeConvId]);
+
+  async function send(text?: string) {
     const t = (text ?? input).trim();
     if (!t) return;
-    setMessages((m) => [...m, { role: "user", text: t, id: Date.now() }]);
+
+    let currentConvId = activeConvId;
+
+    if (!currentConvId) {
+      try {
+        setSending(true);
+        const newConv = await createConversation(t);
+        currentConvId = newConv.id;
+        setActiveConvId(newConv.id);
+        onRefreshConvs();
+      } catch (err: any) {
+        console.error("Error al crear conversación:", err);
+        alert("Inicia sesión para poder utilizar el asistente.");
+        setSending(false);
+        return;
+      }
+    }
+
+    const userMsgLocal = { role: "user" as const, text: t, id: Date.now() };
+    setMessages((m) => [...m, userMsgLocal]);
     setInput("");
     setSending(true);
-    setTimeout(() => {
-      setMessages((m) => [...m, {
-        role: "ai",
-        text: `Trabajemos sobre eso. Aquí va una primera dirección:\n\nIdea central: ${t.toLowerCase().includes("fe") ? "La fe no es ausencia de temblor; es el suelo invisible que aparece bajo el pie justo cuando das el paso." : "Buscamos una sola idea, clara y memorable, que sostenga todo el mensaje."}\n\n¿Quieres que lo desarrolle como expositivo de Hebreos 11, o prefieres un tópico que cruce varios pasajes?`,
-        id: Date.now() + 1,
-      }]);
+
+    try {
+      await addMessage(currentConvId, "user", t);
+
+      const chatHistory = [
+        ...messages.map((m) => ({
+          role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
+          content: m.text,
+        })),
+        { role: "user" as const, content: t },
+      ];
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config,
+          messages: chatHistory,
+        }),
+      });
+
+      if (!res.ok) {
+        const errDetail = await res.json();
+        throw new Error(errDetail.error || "Error al obtener respuesta de la IA.");
+      }
+
+      const data = await res.json();
+      const aiText = data.text;
+
+      await addMessage(currentConvId, "assistant", aiText);
+      setMessages((m) => [...m, { role: "ai", text: aiText, id: Date.now() + 1 }]);
+    } catch (err: any) {
+      console.error(err);
+      setMessages((m) => [
+        ...m,
+        { role: "ai", text: `Error: ${err.message || "No se pudo comunicar con el servidor."}`, id: Date.now() + 1 },
+      ]);
+    } finally {
       setSending(false);
-    }, 950);
+    }
+  }
+
+  async function handleOpenAsSermon() {
+    setSending(true);
+    try {
+      const lastUserMessage = [...messages].reverse().find((m) => m.role === "user")?.text || "Sermón Nuevo";
+
+      const sermonConfig = {
+        ...config,
+        idea: lastUserMessage,
+      };
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "sermon",
+          config: sermonConfig,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "No se pudo generar el sermón.");
+      }
+
+      const { text: sermonText } = await res.json();
+
+      const resOutline = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "outline",
+          config: sermonConfig,
+          sermonText,
+        }),
+      });
+
+      let outlineText = "";
+      if (resOutline.ok) {
+        const outlineData = await resOutline.json();
+        outlineText = outlineData.text;
+      }
+
+      const sermonId = newId();
+      await saveSermon({
+        id: sermonId,
+        title: sermonConfig.idea.slice(0, 100),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        config: sermonConfig,
+        sermonText,
+        outlineText,
+        slideDecks: [],
+      });
+
+      onOpenSermon(sermonId);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Error al generar el sermón: ${err.message}`);
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -43,11 +193,11 @@ export function EstudioScreen({ onOpenSermon, onOpenFilters }: { onOpenSermon: (
               <IcSliders size={14} /> Filtros
               <span className="pill pill-quiet" style={{ marginLeft: 4 }}>7</span>
             </button>
-            <button className="btn btn-ghost btn-sm">
-              <IcUser size={14} /> Bautista
+            <button className="btn btn-ghost btn-sm" onClick={onOpenFilters}>
+              <IcUser size={14} /> {config.framework}
             </button>
-            <button className="btn btn-ghost btn-sm">
-              <IcSpark size={14} /> Claude · Opus
+            <button className="btn btn-ghost btn-sm" onClick={onOpenFilters}>
+              <IcSpark size={14} /> {config.provider === "claude" ? "Claude · Opus" : "Gemini · Pro"}
             </button>
           </div>
         }
@@ -55,7 +205,9 @@ export function EstudioScreen({ onOpenSermon, onOpenFilters }: { onOpenSermon: (
 
       <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 24px" }}>
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          {messages.length === 0 ? <EmptyState onPick={send} /> : (
+          {loadingMsg ? (
+            <div style={{ textAlign: "center", padding: 40, color: "var(--ink-3)" }}>Cargando conversación...</div>
+          ) : messages.length === 0 ? <EmptyState onPick={send} /> : (
             <div className="col" style={{ gap: 16 }}>
               {messages.map((m) => (
                 <div key={m.id} className={"bubble " + (m.role === "user" ? "bubble-user" : "bubble-ai")}>
@@ -69,12 +221,17 @@ export function EstudioScreen({ onOpenSermon, onOpenFilters }: { onOpenSermon: (
               )}
               {!sending && messages.length >= 2 && (
                 <div className="row" style={{ gap: 8, marginTop: 6 }}>
-                  <button className="btn btn-accent btn-sm" onClick={onOpenSermon}>
+                  <button className="btn btn-accent btn-sm" onClick={handleOpenAsSermon} disabled={sending}>
                     <IcBook size={14} /> Abrir como sermón
                   </button>
-                  <button className="btn btn-ghost btn-sm"><IcRefresh size={14} /> Regenerar</button>
-                  <button className="btn btn-ghost btn-sm"><IcCopy size={14} /> Copiar</button>
-                  <button className="btn btn-ghost btn-sm"><IcShare size={14} /> Compartir</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => {
+                    const lastUser = [...messages].reverse().find(m => m.role === "user")?.text;
+                    if (lastUser) send(lastUser);
+                  }}><IcRefresh size={14} /> Regenerar</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => {
+                    const lastAi = [...messages].reverse().find(m => m.role === "ai")?.text;
+                    if (lastAi) navigator.clipboard.writeText(lastAi);
+                  }}><IcCopy size={14} /> Copiar</button>
                 </div>
               )}
               <div ref={endRef} />
@@ -88,6 +245,7 @@ export function EstudioScreen({ onOpenSermon, onOpenFilters }: { onOpenSermon: (
         onChange={setInput}
         onSend={() => send()}
         disabled={sending}
+        config={config}
       />
     </div>
   );
@@ -161,11 +319,12 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
   );
 }
 
-function Composer({ value, onChange, onSend, disabled }: {
+function Composer({ value, onChange, onSend, disabled, config }: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
   disabled: boolean;
+  config: SermonConfig;
 }) {
   const ref = React.useRef<HTMLTextAreaElement>(null);
   React.useEffect(() => {
@@ -203,11 +362,11 @@ function Composer({ value, onChange, onSend, disabled }: {
       </div>
       <div className="composer-chips muted">
         <span>Ajustes activos:</span>
-        <span className="chip">Bautista</span>
-        <span className="chip">Expositivo</span>
-        <span className="chip">Idea central · Robinson</span>
-        <span className="chip">Mediano · 20–30 min</span>
-        <span className="chip">RVR1960</span>
+        <span className="chip">{config.framework}</span>
+        <span className="chip" style={{ textTransform: "capitalize" }}>{config.contentType}</span>
+        <span className="chip" style={{ textTransform: "uppercase" }}>{config.method}</span>
+        <span className="chip" style={{ textTransform: "capitalize" }}>{config.length === "medio" ? "Mediano" : config.length === "corto" ? "Corto" : "Largo"}</span>
+        <span className="chip">{config.provider === "claude" ? "Claude" : "Gemini"}</span>
         <span className="spacer" style={{ flex: 1 }}></span>
         <span className="muted" style={{ fontSize: 11 }}>Enviar con <kbd>↵</kbd></span>
       </div>

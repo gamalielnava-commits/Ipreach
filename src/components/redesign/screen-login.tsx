@@ -1,11 +1,44 @@
 "use client";
 import React from "react";
 import { IcArrowRight } from "./icons";
+import { supabase } from "@/lib/supabase";
 
 export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
   const [email, setEmail] = React.useState("");
   const [pass, setPass] = React.useState("");
   const [mode, setMode] = React.useState<"signin" | "signup">("signin");
+  const [loading, setLoading] = React.useState(false);
+  const [errorMsg, setErrorMsg] = React.useState("");
+
+  async function handleAuth() {
+    if (!email || !pass) {
+      setErrorMsg("Por favor, rellena todos los campos.");
+      return;
+    }
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password: pass,
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password: pass,
+        });
+        if (error) throw error;
+        alert("¡Registro exitoso! Si se configuró confirmación por correo, por favor verifícalo.");
+      }
+      onSignIn();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Ocurrió un error durante la autenticación.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div style={{
@@ -104,10 +137,15 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
           </div>
 
           <div className="col" style={{ gap: 12 }}>
+            {errorMsg && (
+              <div style={{ color: "#E11D48", fontSize: 13, background: "rgba(225,29,72,0.1)", padding: "10px 14px", borderRadius: 8 }}>
+                {errorMsg}
+              </div>
+            )}
             <div>
               <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Correo electrónico</label>
               <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                placeholder="pastor@iglesia.org" />
+                disabled={loading} placeholder="pastor@iglesia.org" />
             </div>
             <div>
               <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
@@ -115,11 +153,11 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
                 {mode === "signin" && <button className="btn-quiet" style={{ fontSize: 10.5, padding: 0 }}>Recuperar</button>}
               </div>
               <input className="field" type="password" value={pass} onChange={(e) => setPass(e.target.value)}
-                placeholder="••••••••" />
+                disabled={loading} placeholder="••••••••" />
             </div>
 
-            <button className="btn btn-accent" style={{ justifyContent: "center", padding: "12px" }} onClick={onSignIn}>
-              {mode === "signin" ? "Entrar" : "Crear cuenta"} <IcArrowRight size={14} />
+            <button className="btn btn-accent" style={{ justifyContent: "center", padding: "12px" }} onClick={handleAuth} disabled={loading}>
+              {loading ? "Procesando..." : (mode === "signin" ? "Entrar" : "Crear cuenta")} {!loading && <IcArrowRight size={14} />}
             </button>
           </div>
 

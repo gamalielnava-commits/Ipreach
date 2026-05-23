@@ -1,5 +1,7 @@
-"use client";
 import React from "react";
+import { getSermon, saveSermon } from "@/lib/store";
+import { exportWord, exportPptx } from "@/lib/export";
+import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
 import { SERMON_SAMPLE, OUTLINE_SAMPLE, SLIDE_STYLES, VERSE_PREVIEW, PHRASES_SAMPLE } from "./data";
 import { TypePill, SectionHead } from "./shared";
 import {
@@ -7,16 +9,138 @@ import {
   IcEye, IcSliders, IcMore, IcCopy, IcPlus, IcBookmark, IcSearch, IcChevron, IcShare,
 } from "./icons";
 
-export function SermonScreen({ onOpenFilters, onPresent, onPrint }: {
+export function SermonScreen({
+  sermonId,
+  onOpenFilters,
+  onPresent,
+  onPrint,
+}: {
+  sermonId: string | null;
   onOpenFilters: () => void;
   onPresent: () => void;
   onPrint: () => void;
 }) {
+  const [sermon, setSermon] = React.useState<Sermon | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
   const [tab, setTab] = React.useState("texto");
+  const [generatingOutline, setGeneratingOutline] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!sermonId) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await getSermon(sermonId);
+        setSermon(data);
+      } catch (err) {
+        console.error("Error al cargar el sermón:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [sermonId]);
+
+  React.useEffect(() => {
+    if (!sermon) return;
+    const timer = setTimeout(async () => {
+      setSaving(true);
+      try {
+        await saveSermon(sermon);
+      } catch (err) {
+        console.error("Error al auto-guardar sermón:", err);
+      } finally {
+        setSaving(false);
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [sermon]);
+
+  async function handleGenerateOutline() {
+    if (!sermon) return;
+    setGeneratingOutline(true);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "outline",
+          config: sermon.config,
+          sermonText: sermon.sermonText,
+        }),
+      });
+      if (!res.ok) throw new Error("Error en la generación de bosquejo.");
+      const data = await res.json();
+      setSermon({ ...sermon, outlineText: data.text });
+    } catch (err: any) {
+      alert(`Error al generar bosquejo: ${err.message}`);
+    } finally {
+      setGeneratingOutline(false);
+    }
+  }
+
+  async function handleRegenerateSermon() {
+    if (!sermon) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "sermon",
+          config: sermon.config,
+        }),
+      });
+      if (!res.ok) throw new Error("Error en la regeneración de sermón.");
+      const data = await res.json();
+      setSermon({ ...sermon, sermonText: data.text });
+    } catch (err: any) {
+      alert(`Error al regenerar sermón: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!sermonId) {
+    return (
+      <div className="main" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+        <p className="serif muted" style={{ fontSize: 18, fontStyle: "italic" }}>
+          Selecciona un sermón de la biblioteca o inicia un nuevo estudio para comenzar a redactar.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="main" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+        <div style={{ textAlign: "center" }}>
+          <div className="typing"><span></span><span></span><span></span></div>
+          <p className="ui muted" style={{ fontSize: 13, marginTop: 12 }}>Cargando o generando sermón...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sermon) {
+    return (
+      <div className="main" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+        <p className="serif muted" style={{ fontSize: 18, fontStyle: "italic", color: "#E11D48" }}>
+          No se encontró el sermón seleccionado.
+        </p>
+      </div>
+    );
+  }
+
+  const wordCount = sermon.sermonText ? sermon.sermonText.split(/\s+/).filter(Boolean).length : 0;
+  const slideCount = sermon.slideDecks?.[0]
+    ? sermon.slideDecks[0].text.split(/^[ \t]*DIAPOSITIVA[^\n]*$/im).filter(Boolean).length
+    : 0;
+
   const TABS = [
-    { id: "texto", label: "Texto", icon: IcType, count: "2.4k" },
-    { id: "bosquejo", label: "Bosquejo", icon: IcOutline, count: "IV" },
-    { id: "diapositivas", label: "Diapositivas", icon: IcSlide, count: "12" },
+    { id: "texto", label: "Texto", icon: IcType, count: `${(wordCount / 1000).toFixed(1)}k` },
+    { id: "bosquejo", label: "Bosquejo", icon: IcOutline, count: sermon.outlineText ? "IV" : "0" },
+    { id: "diapositivas", label: "Diapositivas", icon: IcSlide, count: slideCount.toString() },
     { id: "imagenes", label: "Imágenes", icon: IcImage, count: "4" },
     { id: "biblia", label: "Biblia", icon: IcBook, count: null as string | null },
   ];
@@ -26,12 +150,12 @@ export function SermonScreen({ onOpenFilters, onPresent, onPrint }: {
       <div style={{ padding: "22px 32px 14px", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ gap: 14, marginBottom: 10 }}>
           <TypePill type="Sermón" />
-          <span className="ui muted" style={{ fontSize: 11.5 }}>{SERMON_SAMPLE.scripture}</span>
-          <span className="pill"><IcSpark size={10} /> Guardado · hace 2 min</span>
+          <span className="ui muted" style={{ fontSize: 11.5 }}>{sermon.config.scripture || sermon.config.idea}</span>
+          <span className="pill"><IcSpark size={10} /> {saving ? "Guardando..." : "Guardado"}</span>
           <span className="spacer" />
           <div className="row" style={{ gap: 6 }}>
-            <button className="btn btn-ghost btn-sm"><IcRefresh size={14} /> Regenerar</button>
-            <button className="btn btn-ghost btn-sm" onClick={onPrint}><IcDownload size={14} /> Word</button>
+            <button className="btn btn-ghost btn-sm" onClick={handleRegenerateSermon}><IcRefresh size={14} /> Regenerar</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => exportWord(sermon)}><IcDownload size={14} /> Word</button>
             <button className="btn btn-ghost btn-sm" onClick={onPrint}><IcDownload size={14} /> PDF</button>
             <button className="btn btn-accent btn-sm" onClick={onPresent}><IcEye size={14} /> Presentar</button>
             <button className="btn-icon" onClick={onOpenFilters} title="Filtros del sermón"><IcSliders size={16} /></button>
@@ -39,15 +163,16 @@ export function SermonScreen({ onOpenFilters, onPresent, onPrint }: {
           </div>
         </div>
         <h1 className="display" style={{ fontSize: 38, fontWeight: 400, letterSpacing: "-0.018em" }}>
-          {SERMON_SAMPLE.title}
+          {sermon.title}
         </h1>
         <p className="serif" style={{ fontSize: 17, fontStyle: "italic", color: "var(--ink-2)", marginTop: 8, maxWidth: 720 }}>
-          {SERMON_SAMPLE.big_idea}
+          {sermon.config.idea}
         </p>
         <div className="meta-strip" style={{ marginTop: 14 }}>
-          {Object.entries(SERMON_SAMPLE.meta).map(([k, v]) => (
-            <div key={k}><strong>{k}</strong> · {v}</div>
-          ))}
+          <div><strong>Marco</strong> · {sermon.config.framework}</div>
+          <div><strong>Método</strong> · {sermon.config.method}</div>
+          <div><strong>Longitud</strong> · {sermon.config.length === "medio" ? "Mediana · 20-30 min" : sermon.config.length === "corto" ? "Corta · 10-15 min" : "Larga · 35-45 min"}</div>
+          <div><strong>Modelo</strong> · {sermon.config.provider === "claude" ? "Claude (Opus)" : "Gemini (Pro)"}</div>
         </div>
       </div>
 
@@ -67,9 +192,9 @@ export function SermonScreen({ onOpenFilters, onPresent, onPrint }: {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "26px 32px 60px" }}>
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          {tab === "texto" && <TextoTab />}
-          {tab === "bosquejo" && <BosquejoTab />}
-          {tab === "diapositivas" && <DiapositivasTab />}
+          {tab === "texto" && <TextoTab sermon={sermon} onChange={(txt) => setSermon({ ...sermon, sermonText: txt })} />}
+          {tab === "bosquejo" && <BosquejoTab sermon={sermon} onChange={(txt) => setSermon({ ...sermon, outlineText: txt })} onRegenerate={handleGenerateOutline} generating={generatingOutline} />}
+          {tab === "diapositivas" && <DiapositivasTab sermon={sermon} setSermon={setSermon} />}
           {tab === "imagenes" && <ImagenesTab />}
           {tab === "biblia" && <BibliaTab />}
         </div>
@@ -79,7 +204,7 @@ export function SermonScreen({ onOpenFilters, onPresent, onPrint }: {
 }
 
 /* ---------- Texto ---------- */
-function TextoTab() {
+function TextoTab({ sermon, onChange }: { sermon: Sermon; onChange: (text: string) => void }) {
   const [mode, setMode] = React.useState("manuscrito");
   return (
     <article style={{ fontFamily: "var(--font-display)", lineHeight: 1.7, color: "var(--ink)" }}>
@@ -95,119 +220,77 @@ function TextoTab() {
               onClick={() => setMode(k)}>{n}</button>
           ))}
         </div>
-        <div className="row" style={{ gap: 6 }}>
-          <button className="btn-quiet" style={{ fontSize: 11 }}><IcEye size={13} /> Lectura</button>
-          <button className="btn-quiet" style={{ fontSize: 11 }}><IcType size={13} /> Aa</button>
-        </div>
       </div>
 
-      {mode === "manuscrito" && <ManuscritoView />}
-      {mode === "notas" && <NotasView />}
-      {mode === "teleprompter" && <TeleprompterView />}
-      {mode === "congregacion" && <CongregacionView />}
+      {mode === "manuscrito" && <ManuscritoView sermon={sermon} onChange={onChange} />}
+      {mode === "notas" && <NotasView text={sermon.sermonText} />}
+      {mode === "teleprompter" && <TeleprompterView text={sermon.sermonText} />}
+      {mode === "congregacion" && <CongregacionView text={sermon.sermonText} title={sermon.title} scripture={sermon.config.scripture || sermon.config.idea} />}
     </article>
   );
 }
 
-function ManuscritoView() {
+function ManuscritoView({ sermon, onChange }: { sermon: Sermon; onChange: (text: string) => void }) {
+  const wordCount = sermon.sermonText ? sermon.sermonText.split(/\s+/).filter(Boolean).length : 0;
+  const readTime = Math.round(wordCount / 130);
   return (
-    <>
-      <SectionHead roman="0." kicker="Introducción" />
-      <p className="dropcap" style={{ fontSize: 17 }}>{SERMON_SAMPLE.intro}</p>
-
-      <blockquote className="scripture">
-        Es, pues, la fe la certeza de lo que se espera, la convicción de lo que no se ve. Sin fe es imposible agradar a Dios; porque es necesario que el que se acerca a Dios crea que le hay.
-        <cite>Hebreos 11:1, 6 · RVR1960</cite>
-      </blockquote>
-
-      <SectionHead roman="I." kicker="Punto 1" title={SERMON_SAMPLE.point1_title} />
-      <p style={{ fontSize: 16.5 }}>{SERMON_SAMPLE.point1}</p>
-
-      <SectionHead roman="II." kicker="Punto 2" title={SERMON_SAMPLE.point2_title} />
-      <p style={{ fontSize: 16.5 }}>{SERMON_SAMPLE.point2}</p>
-
-      <SectionHead kicker="Ilustración" />
-      <p style={{
-        fontSize: 16.5,
-        borderLeft: "2px solid var(--gilt)",
-        fontStyle: "italic",
-        color: "var(--ink-2)",
-        background: "color-mix(in oklab, var(--gilt) 5%, transparent)",
-        padding: "12px 22px",
-        borderRadius: "0 8px 8px 0",
-      }}>
-        {SERMON_SAMPLE.illustration}
-      </p>
-
-      <SectionHead kicker="Aplicación" />
-      <ol style={{ paddingLeft: 0, listStyle: "none", counterReset: "ap" }}>
-        {SERMON_SAMPLE.applications.map((a, i) => (
-          <li key={i} style={{
-            display: "grid", gridTemplateColumns: "auto 1fr", gap: 14,
-            counterIncrement: "ap", padding: "12px 0",
-            borderBottom: i < SERMON_SAMPLE.applications.length - 1 ? "1px dashed var(--line-soft)" : "none",
-          }}>
-            <span className="ui" style={{
-              fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase",
-              color: "var(--accent)", fontWeight: 600, paddingTop: 4, whiteSpace: "nowrap",
-            }}>Acción · {String(i + 1).padStart(2, "0")}</span>
-            <span style={{ fontSize: 16 }}>{a}</span>
-          </li>
-        ))}
-      </ol>
-
-      <SectionHead roman="✠" kicker="Cierre" />
-      <p style={{ fontSize: 17, fontWeight: 500 }}>{SERMON_SAMPLE.close}</p>
-
-      <hr className="rule" style={{ margin: "30px 0" }} />
-      <p className="ui muted" style={{ fontSize: 11.5, textAlign: "center" }}>
-        Aprox. 2 480 palabras · 27 min · última edición hace 2 min
-      </p>
-    </>
-  );
-}
-
-function NotasView() {
-  const blocks = [
-    { time: "00:00", min: "2 min", section: "Intro", notes: ["Saludo · una respiración", "“El temor que cierra puertas vs. el que despierta a orar”", "Pausa 3 segundos antes de leer el texto"] },
-    { time: "02:00", min: "8 min", section: "Punto I — Certeza, no ausencia de temblor", notes: ["Leer Heb 11:1", "Hypostasis · suelo invisible", "Génesis 12:1 · sin saber", "🔑 Repetir IDEA CENTRAL aquí"] },
-    { time: "10:00", min: "7 min", section: "Punto II — La voz de la promesa", notes: ["Salmo 23 · valle de sombra", "Cita Romanos 10:17", "→ Ilustración del guía de montaña", "🎭 Bajar el tono, hablar despacio"] },
-    { time: "17:00", min: "6 min", section: "Punto III — Probada en el silencio", notes: ["1 Pedro 1:7", "“Dios no se ha ido — está afinando la voz”", "Testimonio breve (controlar tiempo)"] },
-    { time: "23:00", min: "3 min", section: "Aplicación", notes: ["3 acciones esta semana", "Pedir que alguien comparta brevemente"] },
-    { time: "26:00", min: "1 min", section: "Cierre y bendición", notes: ["Frase clave + 3s silencio", "Romanos 15:13"] },
-  ];
-  return (
-    <div style={{ fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.55, color: "var(--ink)" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 20 }}>
-        {blocks.map((b, i) => (
-          <React.Fragment key={i}>
-            <div style={{ textAlign: "right", paddingTop: 4 }}>
-              <div className="ui" style={{
-                fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 500,
-                color: "var(--accent)", letterSpacing: "-.01em",
-              }}>{b.time}</div>
-              <div className="ui muted" style={{ fontSize: 11 }}>+{b.min}</div>
-            </div>
-            <div style={{ borderLeft: "2px solid var(--accent)", paddingLeft: 18, paddingBottom: 16, marginBottom: 6 }}>
-              <div className="display" style={{ fontSize: 18, marginBottom: 8, fontWeight: 500 }}>
-                {b.section}
-              </div>
-              <ul style={{ paddingLeft: 16, margin: 0 }}>
-                {b.notes.map((n, ni) => (
-                  <li key={ni} style={{ padding: "2px 0", fontFamily: "var(--font-ui)", fontSize: 14 }}>
-                    {n}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </React.Fragment>
-        ))}
+    <div style={{ background: "var(--paper)", padding: "26px 30px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", minHeight: "500px", marginTop: "14px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+      <textarea
+        value={sermon.sermonText}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: "100%",
+          minHeight: "450px",
+          background: "transparent",
+          color: "var(--ink)",
+          fontFamily: "var(--font-display)",
+          fontSize: "17px",
+          lineHeight: 1.8,
+          border: "none",
+          outline: "none",
+          resize: "none",
+        }}
+        placeholder="Escribe o edita el manuscrito del sermón aquí..."
+      />
+      <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 14, marginTop: 14, display: "flex", justifyContent: "space-between" }}>
+        <span className="ui muted" style={{ fontSize: 11 }}>Aprox. {wordCount} palabras · {readTime} min</span>
       </div>
     </div>
   );
 }
 
-function TeleprompterView() {
+function NotasView({ text }: { text: string }) {
+  const paragraphs = text ? text.split("\n").map(p => p.trim()).filter(Boolean) : [];
+  return (
+    <div style={{ fontFamily: "var(--font-ui)", fontSize: 14, lineHeight: 1.55, color: "var(--ink)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 20 }}>
+        {paragraphs.length === 0 ? (
+          <div style={{ gridColumn: "span 2", textAlign: "center", padding: "40px", color: "var(--ink-3)" }}>
+            No hay párrafos en el sermón para generar notas.
+          </div>
+        ) : (
+          paragraphs.map((p, i) => {
+            const time = `${String(Math.min(59, i * 3)).padStart(2, "0")}:00`;
+            return (
+              <React.Fragment key={i}>
+                <div style={{ textAlign: "right", paddingTop: 4 }}>
+                  <div className="ui" style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 500, color: "var(--accent)" }}>{time}</div>
+                  <div className="ui muted" style={{ fontSize: 11 }}>+{Math.min(10, Math.round(p.split(" ").length / 130))} min</div>
+                </div>
+                <div style={{ borderLeft: "2px solid var(--accent)", paddingLeft: 18, paddingBottom: 16, marginBottom: 6 }}>
+                  <div style={{ fontSize: 15, fontFamily: "var(--font-ui)" }}>{p}</div>
+                </div>
+              </React.Fragment>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TeleprompterView({ text }: { text: string }) {
+  const paragraphs = text ? text.split("\n").map(p => p.trim()).filter(Boolean) : [];
   return (
     <div style={{
       fontFamily: "var(--font-display)",
@@ -225,151 +308,168 @@ function TeleprompterView() {
         fontFamily: "var(--font-ui)", fontSize: 11,
         color: "rgba(240,232,213,.5)", letterSpacing: ".14em", textTransform: "uppercase",
       }}>
-        <span><span style={{ color: "#d4a64e" }}>●</span> Teleprompter · 60 WPM</span>
+        <span>● Teleprompter</span>
         <span>Espacio para iniciar</span>
       </div>
-
-      <p style={{ marginTop: 30 }}>
-        Hay un <span style={{ color: "#d4a64e" }}>temor que cierra</span> las puertas por dentro y otro que despierta antes del amanecer para orar.
-      </p>
-      <p>/ pausa /</p>
-      <p>
-        La primera carta que la iglesia leyó en voz alta no comenzaba con un manual, sino con un <span style={{ color: "#d4a64e", fontWeight: 500 }}>grito</span>:
-      </p>
-      <p style={{ fontStyle: "italic", color: "#fff" }}>
-        “Sin fe es imposible agradar a Dios.”
-      </p>
-      <p>/ 3 segundos de silencio /</p>
-      <p style={{ opacity: 0.5 }}>
-        ▶ Hebreos no define la fe como un sentimiento limpio…
-      </p>
-
-      <div style={{ position: "absolute", bottom: 14, left: 18, right: 18, display: "flex", justifyContent: "space-between", fontFamily: "var(--font-ui)", fontSize: 11, color: "rgba(240,232,213,.45)" }}>
-        <span>Línea 1 de 184</span>
-        <span>00:00 / 27:00</span>
+      <div style={{ marginTop: 30, display: "grid", gap: 20 }}>
+        {paragraphs.length === 0 ? (
+          <p style={{ opacity: 0.5 }}>Escribe texto en el manuscrito para verlo en el teleprompter.</p>
+        ) : (
+          paragraphs.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function CongregacionView() {
-  const secs = [
-    { h: "I. La fe es certeza, no ausencia de temblor", b: "La fe es el suelo invisible que aparece bajo el pie cuando das el paso. Como Abram, que salió «sin saber a dónde iba», nuestra confianza descansa en quien nos llama por nombre." },
-    { h: "II. La fe encuentra su voz en la promesa", b: "El temor habla primero; la fe responde con un texto. Aférrate a una sola línea cuando el corazón tiemble: «no temeré mal alguno, porque tú estarás conmigo» (Sal 23:4)." },
-    { h: "III. La fe es probada en el silencio", b: "Cuando Dios calla, no se ha ido —está afinando la voz con la que volverá a hablar en nosotros (1 P 1:7)." },
-  ];
+function CongregacionView({ text, title, scripture }: { text: string; title: string; scripture: string }) {
+  const paragraphs = text ? text.split("\n").map(p => p.trim()).filter(Boolean).slice(0, 5) : [];
   return (
     <div>
       <div className="card-flat" style={{ padding: 24, marginBottom: 18 }}>
         <span className="eyebrow">Versión simplificada para entregar a la congregación</span>
         <h3 className="display" style={{ fontSize: 26, marginTop: 8, marginBottom: 4 }}>
-          El temor que se rinde a la fe
+          {title}
         </h3>
-        <p className="ui muted" style={{ fontSize: 12 }}>Hebreos 11:1–6 · Domingo 24 de mayo · Pastor Gamaliel</p>
+        <p className="ui muted" style={{ fontSize: 12 }}>{scripture}</p>
       </div>
-
-      {secs.map((s, i) => (
-        <div key={i} style={{ marginBottom: 18 }}>
-          <h4 className="display" style={{ fontSize: 17, marginBottom: 6 }}>{s.h}</h4>
-          <p style={{ fontSize: 15 }}>{s.b}</p>
-        </div>
-      ))}
-
-      <div style={{ padding: "16px 20px", border: "1px solid var(--accent)", background: "color-mix(in oklab, var(--accent) 5%, transparent)", borderRadius: "var(--r-md)", marginTop: 24 }}>
-        <span className="eyebrow" style={{ color: "var(--accent)" }}>Para llevar esta semana</span>
-        <ul style={{ marginTop: 8, paddingLeft: 20, fontSize: 14.5, lineHeight: 1.55 }}>
-          <li>Identifica un temor concreto y escribe una promesa frente a él.</li>
-          <li>Camina un paso con esa promesa antes de pedir certezas.</li>
-          <li>Llama a alguien en su valle y léele la promesa en voz alta.</li>
-        </ul>
-      </div>
+      {paragraphs.length === 0 ? (
+        <p className="serif muted" style={{ fontStyle: "italic" }}>El sermón no tiene texto aún.</p>
+      ) : (
+        paragraphs.map((p, i) => (
+          <div key={i} style={{ marginBottom: 18 }}>
+            <p style={{ fontSize: 15 }}>{p}</p>
+          </div>
+        ))
+      )}
     </div>
   );
 }
 
 /* ---------- Bosquejo ---------- */
-function BosquejoTab() {
+function BosquejoTab({
+  sermon,
+  onChange,
+  onRegenerate,
+  generating,
+}: {
+  sermon: Sermon;
+  onChange: (text: string) => void;
+  onRegenerate: () => void;
+  generating: boolean;
+}) {
   return (
     <div>
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 18 }}>
         <h2 className="sec-title">Bosquejo predicable</h2>
         <div className="row" style={{ gap: 6 }}>
-          <button className="btn btn-ghost btn-sm"><IcRefresh size={14} /> Regenerar</button>
-          <button className="btn btn-ghost btn-sm"><IcCopy size={14} /> Copiar</button>
-          <button className="btn btn-ghost btn-sm"><IcDownload size={14} /> Word</button>
+          <button className="btn btn-ghost btn-sm" onClick={onRegenerate} disabled={generating}>
+            <IcRefresh size={14} /> {generating ? "Generando..." : "Regenerar bosquejo"}
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard.writeText(sermon.outlineText)}>
+            <IcCopy size={14} /> Copiar
+          </button>
         </div>
       </div>
 
       <div className="card-flat" style={{ padding: 28 }}>
-        <div style={{ borderLeft: "1px solid var(--line)", paddingLeft: 26, marginLeft: 12 }}>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>Texto base</div>
-          <p className="serif" style={{ fontSize: 18, marginBottom: 4 }}>Hebreos 11:1–6 · RVR1960</p>
-          <div className="eyebrow" style={{ marginTop: 22, marginBottom: 8 }}>Idea central</div>
-          <p className="serif" style={{ fontSize: 17, fontStyle: "italic", color: "var(--ink-2)" }}>
-            {SERMON_SAMPLE.big_idea}
-          </p>
-
-          <hr className="rule" style={{ margin: "26px -26px 26px 0" }} />
-
-          <div className="eyebrow" style={{ marginBottom: 14 }}>Divisiones</div>
-          <div className="col" style={{ gap: 18 }}>
-            {OUTLINE_SAMPLE.map((p, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "40px 1fr", gap: 14 }}>
-                <span className="display" style={{ fontSize: 24, fontStyle: "italic", color: "var(--accent)" }}>{p.roman}</span>
-                <div>
-                  <h4 className="display" style={{ fontSize: 18, marginBottom: 6 }}>{p.title}</h4>
-                  <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                    {p.refs.map((r) => (
-                      <span key={r} className="chip chip-accent">{r}</span>
-                    ))}
-                    <button className="chip"><IcPlus size={11} /> Subpunto</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button className="btn btn-ghost" style={{ alignSelf: "flex-start" }}>
-              <IcPlus size={14} /> Añadir división
-            </button>
-          </div>
-
-          <hr className="rule" style={{ margin: "26px -26px 26px 0" }} />
-
-          <div className="eyebrow" style={{ marginBottom: 8 }}>Llamado y aplicación</div>
-          <p className="serif" style={{ fontSize: 16, color: "var(--ink-2)" }}>
-            Cierra con un acto concreto: que cada oyente escriba el temor con el que entró y la promesa que se llevará. Ofrece un momento de oración silenciosa antes de la respuesta congregacional.
-          </p>
-        </div>
+        <textarea
+          value={sermon.outlineText}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            width: "100%",
+            minHeight: "450px",
+            background: "transparent",
+            color: "var(--ink)",
+            fontFamily: "var(--font-display)",
+            fontSize: "17px",
+            lineHeight: 1.8,
+            border: "none",
+            outline: "none",
+            resize: "none",
+          }}
+          placeholder="El bosquejo se generará aquí..."
+        />
       </div>
     </div>
   );
 }
 
 /* ---------- Diapositivas ---------- */
-function DiapositivasTab() {
+function DiapositivasTab({
+  sermon,
+  setSermon,
+}: {
+  sermon: Sermon;
+  setSermon: React.Dispatch<React.SetStateAction<Sermon | null>>;
+}) {
   const [style, setStyle] = React.useState("hillsong");
   const [density, setDensity] = React.useState("mediana");
+  const [generating, setGenerating] = React.useState(false);
 
-  const deck = [
-    { kind: "Título", big: "El temor que se\nrinde a la fe", sub: "Hebreos 11:1–6" },
-    { kind: "Idea central", big: "La fe es el suelo\ninvisible bajo el pie", sub: "Idea homilética" },
-    { kind: "Texto", big: "“Sin fe es imposible\nagradar a Dios.”", sub: "Hebreos 11:6" },
-    { kind: "Punto I", big: "Certeza, no\nausencia de temblor", sub: "Hebreos 11:1" },
-    { kind: "Sub-punto", big: "hypostasis · lo que\nsostiene por debajo", sub: "exégesis" },
-    { kind: "Texto", big: "Salió sin saber\na dónde iba.", sub: "Génesis 12:1" },
-    { kind: "Punto II", big: "La fe encuentra\nsu voz en la promesa", sub: "Salmo 23" },
-    { kind: "Ilustración", big: "Los veteranos\nmiran la cuerda.", sub: "ilustración" },
-    { kind: "Punto III", big: "La fe es probada\nen el silencio", sub: "1 Pedro 1:7" },
-    { kind: "Aplicación", big: "Camina un paso\ncon la promesa.", sub: "esta semana" },
-    { kind: "Cierre", big: "Mira la cicatriz\nen la mano abierta.", sub: "evangelio" },
-    { kind: "Bendición", big: "Que el Dios de\nla esperanza…", sub: "Romanos 15:13" },
-  ];
+  const activeDeck = sermon.slideDecks?.[0];
+  const slides = activeDeck
+    ? activeDeck.text
+        .split(/^[ \t]*DIAPOSITIVA[^\n]*$/im)
+        .map((b) => b.trim())
+        .filter(Boolean)
+        .map((block) => {
+          const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+          return {
+            kind: lines[0] || "Diapositiva",
+            big: lines.slice(1).join("\n"),
+            sub: sermon.config.scripture || "",
+          };
+        })
+    : [];
+
+  async function handleGenerateSlides() {
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "slides",
+          config: sermon.config,
+          sermonText: sermon.sermonText,
+          slideStyle: style,
+          slideDensity: density,
+        }),
+      });
+      if (!res.ok) throw new Error("Error al generar diapositivas.");
+      const data = await res.json();
+      
+      const newDeck: SlideDeck = {
+        id: crypto.randomUUID(),
+        style,
+        density: density as SlideDensity,
+        text: data.text,
+        imagePrompt: "",
+        createdAt: new Date().toISOString(),
+      };
+
+      setSermon({
+        ...sermon,
+        slideDecks: [newDeck, ...(sermon.slideDecks || [])],
+      });
+    } catch (err: any) {
+      alert(`Error al generar diapositivas: ${err.message}`);
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   return (
     <div className="col" style={{ gap: 22 }}>
       <div className="card-flat" style={{ padding: 22 }}>
         <div className="row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
           <h2 className="sec-title">Generar diapositivas</h2>
-          <button className="btn btn-accent btn-sm"><IcSpark size={14} /> Generar mazo</button>
+          <button className="btn btn-accent btn-sm" onClick={handleGenerateSlides} disabled={generating || !sermon.sermonText}>
+            <IcSpark size={14} /> {generating ? "Generando..." : "Generar mazo"}
+          </button>
         </div>
         <div className="eyebrow" style={{ marginBottom: 10 }}>Estilo visual</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
@@ -421,25 +521,34 @@ function DiapositivasTab() {
 
       <div>
         <div className="row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
-          <h3 className="sec-title" style={{ fontSize: 19 }}>Mazo · Hillsong · 12 diapositivas</h3>
-          <div className="row" style={{ gap: 6 }}>
-            <button className="btn btn-ghost btn-sm"><IcEye size={14} /> Presentar</button>
-            <button className="btn btn-ghost btn-sm"><IcDownload size={14} /> .pptx</button>
-            <button className="btn btn-ghost btn-sm"><IcDownload size={14} /> Keynote</button>
-          </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          {deck.map((d, i) => (
-            <div key={i} style={{ position: "relative" }}>
-              <div className={"slide-tile " + (SLIDE_STYLES.find((s) => s.slug === style)?.cls || "deck-hillsong")}
-                style={{ aspectRatio: "16/9" }}>
-                <small>{d.kind} · {String(i + 1).padStart(2, "0")}</small>
-                <div style={{ fontSize: 14, fontWeight: 500, whiteSpace: "pre-wrap" }}>{d.big}</div>
-                <div style={{ fontSize: 9.5, opacity: 0.7, marginTop: 4, letterSpacing: ".1em", textTransform: "uppercase" }}>{d.sub}</div>
-              </div>
+          <h3 className="sec-title" style={{ fontSize: 19 }}>
+            Mazo · {SLIDE_STYLES.find((s) => s.slug === style)?.name || style} · {slides.length} diapositivas
+          </h3>
+          {slides.length > 0 && (
+            <div className="row" style={{ gap: 6 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => exportPptx(sermon, activeDeck!)}><IcDownload size={14} /> .pptx</button>
             </div>
-          ))}
+          )}
         </div>
+        
+        {slides.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px", border: "1px dashed var(--line)", borderRadius: "var(--r-md)", color: "var(--ink-3)" }}>
+            Haz clic en "Generar mazo" en la parte superior para crear diapositivas reales con Inteligencia Artificial.
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            {slides.map((d, i) => (
+              <div key={i} style={{ position: "relative" }}>
+                <div className={"slide-tile " + (SLIDE_STYLES.find((s) => s.slug === style)?.cls || "deck-hillsong")}
+                  style={{ aspectRatio: "16/9" }}>
+                  <small>{d.kind} · {String(i + 1).padStart(2, "0")}</small>
+                  <div style={{ fontSize: 14, fontWeight: 500, whiteSpace: "pre-wrap" }}>{d.big}</div>
+                  <div style={{ fontSize: 9.5, opacity: 0.7, marginTop: 4, letterSpacing: ".1em", textTransform: "uppercase" }}>{d.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

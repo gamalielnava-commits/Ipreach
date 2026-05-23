@@ -3,7 +3,19 @@ import React from "react";
 import { FRAMEWORKS_SHORT, THEMES_SAMPLE, COMMENTATORS, METHODS } from "./data";
 import { IcBook, IcBookmark, IcCross, IcChevron, IcChevronD, IcClose, IcCheck } from "./icons";
 
-export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => void }) {
+import type { SermonConfig } from "@/lib/types";
+
+export function FiltersRail({
+  open,
+  onClose,
+  config,
+  setConfig,
+}: {
+  open: boolean;
+  onClose: () => void;
+  config: SermonConfig;
+  setConfig: React.Dispatch<React.SetStateAction<SermonConfig>>;
+}) {
   const [framework, setFramework] = React.useState("Bautista");
   const [length, setLength] = React.useState("mediano");
   const [method, setMethod] = React.useState("robinson");
@@ -13,6 +25,34 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
   const [provider, setProvider] = React.useState("claude");
   const [verseOpt, setVerseOpt] = React.useState("solo-cita");
   const [openSection, setOpenSection] = React.useState<Record<string, boolean>>({ themes: true, method: true });
+
+  React.useEffect(() => {
+    if (open && config) {
+      setFramework(config.framework || "Bautista");
+      setLength(config.length || "medio");
+      setMethod(config.method || "robinson");
+      setContentType(config.contentType || "sermon");
+      setThemes(config.themes || []);
+      setCommentators(config.commentators || []);
+      setProvider(config.provider || "claude");
+      setVerseOpt(config.verseOption || "solo-cita");
+    }
+  }, [open, config]);
+
+  function handleApply() {
+    setConfig({
+      ...config,
+      framework,
+      length: length as any,
+      method,
+      contentType,
+      themes,
+      commentators,
+      provider: provider as any,
+      verseOption: verseOpt as any,
+    });
+    onClose();
+  }
 
   if (!open) return null;
 
@@ -212,8 +252,8 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
 
         <div style={{ padding: 18, borderTop: "1px solid var(--line)" }}>
           <button type="button" className="btn btn-accent" style={{ width: "100%", justifyContent: "center" }}
-            onClick={onClose}>
-            <IcCheck size={16} /> Aplicar filtros · 7 activos
+            onClick={handleApply}>
+            <IcCheck size={16} /> Aplicar filtros
           </button>
         </div>
       </aside>

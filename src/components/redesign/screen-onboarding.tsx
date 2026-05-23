@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { IcClose, IcArrowRight } from "./icons";
+import { saveProfile } from "@/lib/profile";
 
 export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [step, setStep] = React.useState(0);
@@ -11,6 +12,34 @@ export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () 
   const [sermonType, setSermonType] = React.useState("Expositivo");
   const [method, setMethod] = React.useState("PEICA");
   const [length, setLength] = React.useState("Mediano");
+  const [loading, setLoading] = React.useState(false);
+  const [errorMsg, setErrorMsg] = React.useState("");
+
+  async function handleFinish() {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      await saveProfile({
+        displayName: name || "Predicador",
+        role: role || "Predicador",
+        country: country || "",
+        framework: framework || "Ninguno",
+        churchName: "",
+        churchContext: "",
+        defaults: {
+          sermonTypes: [sermonType],
+          method: method.toLowerCase(),
+          length: (length.toLowerCase() === "mediano" ? "medio" : length.toLowerCase() === "corto" ? "corto" : "largo") as any,
+        },
+        onboarded: true,
+      });
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error al guardar el perfil.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (!open) return null;
 
@@ -58,19 +87,24 @@ export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () 
         </div>
 
         <div style={{ padding: "26px 30px" }}>
+          {errorMsg && (
+            <div style={{ color: "#E11D48", fontSize: 13, background: "rgba(225,29,72,0.1)", padding: "10px 14px", borderRadius: 8, marginBottom: 16 }}>
+              {errorMsg}
+            </div>
+          )}
           {step === 0 && (
             <div className="col" style={{ gap: 16 }}>
               <div>
                 <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Tu nombre</label>
                 <input className="field" value={name} onChange={(e) => setName(e.target.value)}
-                  placeholder="Pastor Gamaliel Nava" />
+                  disabled={loading} placeholder="Pastor Gamaliel Nava" />
               </div>
               <div>
                 <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Eres…</label>
                 <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                   {["Pastor", "Predicador", "Líder o maestro", "Evangelista", "Estudiante"].map((r) => (
                     <button key={r} className={"chip " + (role === r ? "chip-on" : "")}
-                      onClick={() => setRole(r)}>{r}</button>
+                      disabled={loading} onClick={() => setRole(r)}>{r}</button>
                   ))}
                 </div>
               </div>
@@ -82,11 +116,11 @@ export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () 
               <div>
                 <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>País (opcional)</label>
                 <input className="field" value={country} onChange={(e) => setCountry(e.target.value)}
-                  placeholder="México" />
+                  disabled={loading} placeholder="México" />
               </div>
               <div>
                 <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Marco doctrinal</label>
-                <select className="field" value={framework} onChange={(e) => setFramework(e.target.value)}>
+                <select className="field" value={framework} onChange={(e) => setFramework(e.target.value)} disabled={loading}>
                   <option value="">Selecciona tu tradición…</option>
                   <optgroup label="Reformada">
                     <option>Reformada / Presbiteriana</option>
@@ -126,7 +160,7 @@ export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () 
                 <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                   {["Expositivo", "Textual", "Temático", "Narrativo", "Doctrinal", "Devocional"].map((t) => (
                     <button key={t} className={"chip " + (sermonType === t ? "chip-on" : "")}
-                      onClick={() => setSermonType(t)}>{t}</button>
+                      disabled={loading} onClick={() => setSermonType(t)}>{t}</button>
                   ))}
                 </div>
               </div>
@@ -135,7 +169,7 @@ export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () 
                 <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                   {["PEICA", "Robinson", "Lowry", "Chapell", "Wilson", "Stott"].map((t) => (
                     <button key={t} className={"chip " + (method === t ? "chip-on" : "")}
-                      onClick={() => setMethod(t)}>{t}</button>
+                      disabled={loading} onClick={() => setMethod(t)}>{t}</button>
                   ))}
                 </div>
               </div>
@@ -145,6 +179,7 @@ export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () 
                   {([["Corto", "10–15 min"], ["Mediano", "20–30 min"], ["Largo", "35–45 min"]] as [string, string][]).map(([n, d]) => (
                     <button key={n}
                       onClick={() => setLength(n)}
+                      disabled={loading}
                       style={{
                         flex: 1, padding: "10px 12px",
                         border: "1px solid " + (length === n ? "var(--ink)" : "var(--line)"),
@@ -164,19 +199,19 @@ export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () 
 
         <div style={{ padding: "16px 30px 22px", borderTop: "1px solid var(--line)" }}>
           <div className="row">
-            <button className="btn btn-ghost" disabled={step === 0}
+            <button className="btn btn-ghost" disabled={step === 0 || loading}
               onClick={() => setStep((s) => Math.max(0, s - 1))}
               style={{ opacity: step === 0 ? 0.4 : 1 }}>
               Atrás
             </button>
             <span className="spacer" />
             {step < 2 ? (
-              <button className="btn btn-accent" onClick={() => setStep((s) => s + 1)}>
+              <button className="btn btn-accent" onClick={() => setStep((s) => s + 1)} disabled={loading}>
                 Siguiente <IcArrowRight size={14} />
               </button>
             ) : (
-              <button className="btn btn-accent" onClick={onClose}>
-                Empezar a predicar <IcArrowRight size={14} />
+              <button className="btn btn-accent" onClick={handleFinish} disabled={loading}>
+                {loading ? "Guardando..." : "Empezar a predicar"} {!loading && <IcArrowRight size={14} />}
               </button>
             )}
           </div>

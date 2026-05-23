@@ -37,7 +37,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 
-  const version = (body.version || "RV1909").trim();
+  let version = (body.version || "RV1960").trim();
+  if (version === "RVR1960" || version === "RV1909") {
+    version = "RV1960";
+  }
 
   try {
     const res = await fetch(

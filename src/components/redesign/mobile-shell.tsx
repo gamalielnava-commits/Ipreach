@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter, usePathname } from "next/navigation";
+import UserMenu from "@/components/UserMenu";
 import { IOSBiblio, IOSEstudio, IOSSermon, IOSSerie } from "./screen-movil";
 import {
   IcBook,
@@ -47,6 +48,7 @@ export function MobileShell({
         background: "var(--paper)",
         color: "var(--ink)",
         position: "relative",
+        paddingTop: "env(safe-area-inset-top, 0px)",
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 64px)",
         fontFamily: "var(--font-body)",
       }}
@@ -68,30 +70,55 @@ export function MobileShell({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onOpenFilters}
-        aria-label="Filtros"
+      <div
         style={{
           position: "fixed",
           top: "calc(env(safe-area-inset-top, 0px) + 14px)",
           right: 16,
           zIndex: 30,
-          width: 38,
-          height: 38,
-          borderRadius: 999,
-          background: "color-mix(in oklab, var(--paper) 80%, transparent)",
-          backdropFilter: "blur(20px) saturate(180%)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          border: "0.5px solid color-mix(in oklab, var(--ink) 14%, transparent)",
-          display: "grid",
-          placeItems: "center",
-          color: "var(--ink-2)",
-          boxShadow: "0 4px 14px color-mix(in oklab, var(--ink) 12%, transparent)",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
         }}
       >
-        <IcSettings size={16} />
-      </button>
+        <div
+          style={{
+            fontFamily: "var(--font-ui, ui-sans-serif, system-ui, sans-serif)",
+            fontSize: 12,
+            color: "var(--ink-2)",
+            background: "color-mix(in oklab, var(--paper) 80%, transparent)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            WebkitBackdropFilter: "blur(20px) saturate(180%)",
+            border: "0.5px solid color-mix(in oklab, var(--ink) 14%, transparent)",
+            borderRadius: 999,
+            padding: "6px 12px",
+            boxShadow: "0 4px 14px color-mix(in oklab, var(--ink) 12%, transparent)",
+          }}
+        >
+          <UserMenu />
+        </div>
+        <button
+          type="button"
+          onClick={onOpenFilters}
+          aria-label="Filtros"
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 999,
+            background: "color-mix(in oklab, var(--paper) 80%, transparent)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            WebkitBackdropFilter: "blur(20px) saturate(180%)",
+            border: "0.5px solid color-mix(in oklab, var(--ink) 14%, transparent)",
+            display: "grid",
+            placeItems: "center",
+            color: "var(--ink-2)",
+            boxShadow: "0 4px 14px color-mix(in oklab, var(--ink) 12%, transparent)",
+            cursor: "pointer",
+          }}
+        >
+          <IcSettings size={16} />
+        </button>
+      </div>
 
       <nav
         style={{

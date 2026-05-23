@@ -117,7 +117,7 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
   return (
     <>
       <div style={{ padding: "10px 20px 14px" }}>
-        <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="row" style={{ justifyContent: fullscreen ? "flex-start" : "space-between", gap: 10 }}>
           <div className="wordmark-mark" style={{ width: 30, height: 30 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 5a2 2 0 0 1 2-2h12v17H6a2 2 0 0 0-2 2V5Z" />
@@ -125,12 +125,14 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
             </svg>
           </div>
           <span className="display" style={{ fontSize: 18, color: "var(--accent)", fontStyle: "italic" }}>ipreach</span>
-          <div style={{
-            width: 30, height: 30, borderRadius: 999,
-            background: "linear-gradient(135deg, var(--gilt), var(--accent))",
-            display: "grid", placeItems: "center",
-            color: "var(--paper)", fontSize: 11, fontFamily: "var(--font-display)", fontWeight: 600,
-          }}>GN</div>
+          {!fullscreen && (
+            <div style={{
+              width: 30, height: 30, borderRadius: 999,
+              background: "linear-gradient(135deg, var(--gilt), var(--accent))",
+              display: "grid", placeItems: "center",
+              color: "var(--paper)", fontSize: 11, fontFamily: "var(--font-display)", fontWeight: 600,
+            }}>GN</div>
+          )}
         </div>
       </div>
 

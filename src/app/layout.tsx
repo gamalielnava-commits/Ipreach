@@ -40,12 +40,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <div className="flex min-h-[100dvh] flex-col">
-          <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-stone-200 bg-white/90 px-4 backdrop-blur">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-                i
+          <header
+            className="sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-stone-200 bg-white/90 px-4 backdrop-blur md:flex"
+          >
+            <Link href="/" className="flex items-center">
+              <span
+                style={{
+                  fontFamily: "var(--font-display, Newsreader, Georgia, serif)",
+                  fontStyle: "italic",
+                  fontWeight: 500,
+                  fontSize: 22,
+                  letterSpacing: "-0.018em",
+                  color: "var(--ink, #2A2614)",
+                  lineHeight: 1,
+                }}
+              >
+                i<span style={{ color: "var(--accent, #7E8E4A)" }}>preach</span>
               </span>
-              <span className="text-base font-bold text-brand-700">ipreach</span>
             </Link>
             <UserMenu />
           </header>

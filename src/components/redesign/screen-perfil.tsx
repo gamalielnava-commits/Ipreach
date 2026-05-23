@@ -77,6 +77,7 @@ export function PerfilScreen({ onBack, onProfileSaved }: {
         subscriptionStatus: loadedProfile?.subscriptionStatus ?? "free",
         stripeCustomerId: loadedProfile?.stripeCustomerId,
         subscriptionEndsAt: loadedProfile?.subscriptionEndsAt,
+        isAdmin: loadedProfile?.isAdmin ?? false,
       });
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {

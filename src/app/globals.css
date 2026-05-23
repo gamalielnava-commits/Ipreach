@@ -12,6 +12,7 @@ body {
 }
 
 body {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
   background-color: #faf9f7;
   color: #1c1917;
   -webkit-tap-highlight-color: transparent;

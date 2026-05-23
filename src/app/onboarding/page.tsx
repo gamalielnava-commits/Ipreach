@@ -23,6 +23,8 @@ export default function OnboardingPage() {
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [churchName, setChurchName] = useState("");
+  const [churchContext, setChurchContext] = useState("");
   const [country, setCountry] = useState("");
   const [framework, setFramework] = useState("");
   const [sermonType, setSermonType] = useState("expositivo");
@@ -52,16 +54,18 @@ export default function OnboardingPage() {
     return list;
   }, []);
 
-  async function finish() {
+  async function finish(skipAll = false) {
     setBusy(true);
     setError("");
     try {
       await saveProfile({
-        displayName: name.trim(),
-        role,
-        country: country.trim(),
-        framework,
-        defaults: {
+        displayName: skipAll ? "" : name.trim(),
+        role: skipAll ? "" : role,
+        country: skipAll ? "" : country.trim(),
+        framework: skipAll ? "" : framework,
+        churchName: skipAll ? "" : churchName.trim(),
+        churchContext: skipAll ? "" : churchContext.trim(),
+        defaults: skipAll ? {} : {
           sermonTypes: [sermonType],
           strategy,
           method,
@@ -84,8 +88,22 @@ export default function OnboardingPage() {
   }
 
   const canNext =
-    (step === 0 && name.trim().length > 1 && role !== "") ||
-    (step === 1 && framework !== "");
+    step === 0
+      ? name.trim().length > 1
+      : step === 1
+        ? true
+        : true;
+
+  const stepTitles = [
+    "Bienvenido a Ipreach",
+    "Tu perfil teologico",
+    "Tus preferencias",
+  ];
+  const stepSubs = [
+    "Cuéntanos sobre ti y tu ministerio.",
+    "El marco doctrinal quedara preseleccionado en cada sermon.",
+    "Valores por defecto; podras cambiarlos cuando quieras.",
+  ];
 
   return (
     <div className="mx-auto max-w-md px-4 py-8">
@@ -95,19 +113,9 @@ export default function OnboardingPage() {
             Paso {step + 1} de 3
           </p>
           <h1 className="mt-1 text-xl font-bold text-stone-900">
-            {step === 0
-              ? "Bienvenido a Ipreach"
-              : step === 1
-                ? "Tu perfil teologico"
-                : "Tus preferencias"}
+            {stepTitles[step]}
           </h1>
-          <p className="mt-1 text-sm text-stone-500">
-            {step === 0
-              ? "Configuremos tu perfil una sola vez."
-              : step === 1
-                ? "El marco doctrinal quedara preseleccionado en cada sermon."
-                : "Valores por defecto; podras cambiarlos cuando quieras."}
-          </p>
+          <p className="mt-1 text-sm text-stone-500">{stepSubs[step]}</p>
         </div>
 
         {step === 0 && (
@@ -116,24 +124,47 @@ export default function OnboardingPage() {
               <label className="label">Tu nombre</label>
               <input
                 className="field"
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ej. Pastor Gamaliel"
               />
             </div>
             <div>
-              <label className="label">Eres...</label>
+              <label className="label">Eres... (opcional)</label>
               <div className="flex flex-wrap gap-2">
                 {roles.map((r) => (
-                  <span
+                  <button
+                    type="button"
                     key={r.slug}
-                    onClick={() => setRole(r.slug)}
+                    onClick={() => setRole(r.slug === role ? "" : r.slug)}
                     className={`chip ${role === r.slug ? "chip-on" : "chip-off"}`}
                   >
                     {r.name}
-                  </span>
+                  </button>
                 ))}
               </div>
+            </div>
+            <div>
+              <label className="label">Nombre de tu iglesia o ministerio (opcional)</label>
+              <input
+                className="field"
+                type="text"
+                value={churchName}
+                onChange={(e) => setChurchName(e.target.value)}
+                placeholder="Ej. Primera Iglesia Bautista"
+              />
+            </div>
+            <div>
+              <label className="label">Contexto de tu iglesia (opcional)</label>
+              <textarea
+                className="field"
+                value={churchContext}
+                onChange={(e) => setChurchContext(e.target.value)}
+                placeholder="Ej. Iglesia urbana, 200 personas, enfoque en jóvenes, contexto latinoamericano…"
+                rows={3}
+                style={{ resize: "vertical" }}
+              />
             </div>
           </>
         )}
@@ -144,13 +175,14 @@ export default function OnboardingPage() {
               <label className="label">Pais (opcional)</label>
               <input
                 className="field"
+                type="text"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 placeholder="Ej. Mexico"
               />
             </div>
             <div>
-              <label className="label">Marco doctrinal</label>
+              <label className="label">Marco doctrinal (opcional)</label>
               <select
                 className="field"
                 value={framework}
@@ -245,25 +277,42 @@ export default function OnboardingPage() {
 
         <div className="flex justify-between gap-2">
           <button
+            type="button"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0 || busy}
             className="btn-ghost disabled:opacity-40"
           >
             Atras
           </button>
-          {step < 2 ? (
+          <div className="flex gap-2">
             <button
-              onClick={() => setStep((s) => s + 1)}
-              disabled={!canNext}
-              className="btn-primary disabled:opacity-40"
+              type="button"
+              onClick={() => finish(true)}
+              disabled={busy}
+              className="btn-ghost disabled:opacity-40 text-stone-400"
             >
-              Siguiente
+              Omitir todo
             </button>
-          ) : (
-            <button onClick={finish} disabled={busy} className="btn-primary">
-              {busy ? "Guardando..." : "Empezar"}
-            </button>
-          )}
+            {step < 2 ? (
+              <button
+                type="button"
+                onClick={() => setStep((s) => s + 1)}
+                disabled={!canNext}
+                className="btn-primary disabled:opacity-40"
+              >
+                Siguiente
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => finish(false)}
+                disabled={busy}
+                className="btn-primary"
+              >
+                {busy ? "Guardando..." : "Empezar"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

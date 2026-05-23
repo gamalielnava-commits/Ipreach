@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import BottomNav from "@/components/BottomNav";
 import { contentTypes } from "@/lib/catalogs";
 import { deleteSermon, listSermons } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
@@ -50,7 +51,8 @@ export default function SermonesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <>
+    <div className="mx-auto max-w-3xl px-4 pt-6 pb-20 md:pb-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-stone-900">Mis creaciones</h1>
         <Link href="/" className="btn-ghost px-3 py-1.5">
@@ -103,5 +105,7 @@ export default function SermonesPage() {
         </ul>
       )}
     </div>
+    <BottomNav />
+    </>
   );
 }

@@ -3,7 +3,7 @@ import React from "react";
 import { IcChat, IcBook, IcLibrary, IcPlus, IcSlide, IcCalendar, IcShare, IcStar, IcSettings } from "./icons";
 
 export type Screen =
-  | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "movil" | "marca";
+  | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "movil" | "marca" | "perfil";
 
 export function Wordmark() {
   return (
@@ -32,13 +32,14 @@ export function Wordmark() {
 type Conversation = { id: string; title: string; date: string; active?: boolean };
 
 export function Sidebar({
-  screen, setScreen, conversations, activeConv, setActiveConv,
+  screen, setScreen, conversations, activeConv, setActiveConv, profile,
 }: {
   screen: Screen;
   setScreen: (s: Screen) => void;
   conversations: Conversation[];
   activeConv: string;
   setActiveConv: (id: string) => void;
+  profile?: { displayName: string; role: string } | null;
 }) {
   return (
     <aside className="sidebar">
@@ -113,16 +114,23 @@ export function Sidebar({
       </div>
 
       <div style={{ borderTop: "1px solid var(--line)", padding: 12 }}>
-        <button className="nav-item">
+        <button type="button" className={"nav-item " + (screen === "perfil" ? "active" : "")} onClick={() => setScreen("perfil")}>
           <div style={{
             width: 28, height: 28, borderRadius: "50%",
             background: "linear-gradient(135deg, var(--gilt), var(--accent))",
             display: "grid", placeItems: "center",
             color: "var(--paper)", fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 600,
-          }}>GN</div>
+            flexShrink: 0,
+          }}>
+            {profile?.displayName ? profile.displayName.slice(0, 2).toUpperCase() : "?"}
+          </div>
           <div className="col" style={{ lineHeight: 1.2, minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Gamaliel Nava</span>
-            <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)", whiteSpace: "nowrap" }}>Pastor · Bautista</span>
+            <span style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {profile?.displayName ?? "Perfil"}
+            </span>
+            <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)", whiteSpace: "nowrap" }}>
+              {profile?.role ? profile.role : "Configurar perfil"}
+            </span>
           </div>
           <span className="spacer" />
           <IcSettings size={14} />

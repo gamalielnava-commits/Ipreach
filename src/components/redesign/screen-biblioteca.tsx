@@ -9,7 +9,16 @@ export function BibliotecaScreen({ onOpenSermon }: { onOpenSermon: () => void })
   const [filter, setFilter] = React.useState("Todos");
   const [view, setView] = React.useState<"grid" | "list">("grid");
   const filters = ["Todos", "Sermón", "Devocional", "Clase"];
-  const filtered = filter === "Todos" ? SAVED : SAVED.filter((s) => s.type === filter);
+  const safeData = SAVED ?? [];
+  const filtered = filter === "Todos" ? safeData : safeData.filter((s) => s.type === filter);
+
+  if (!safeData.length) {
+    return (
+      <div className="main" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p className="serif muted" style={{ fontSize: 16, fontStyle: "italic" }}>No hay sermones guardados aún.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="main">
@@ -41,38 +50,38 @@ export function BibliotecaScreen({ onOpenSermon }: { onOpenSermon: () => void })
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 18, gap: 8 }}>
             <div className="row chip-row" style={{ gap: 6, flex: 1, overflowX: "auto", paddingBottom: 2 }}>
               {filters.map((f) => (
-                <button key={f}
+                <button type="button" key={f}
                   className={"chip " + (filter === f ? "chip-on" : "")}
                   onClick={() => setFilter(f)}>
                   {f} <span className="ui" style={{ fontSize: 10, opacity: 0.65, marginLeft: 2 }}>
-                    {f === "Todos" ? SAVED.length : SAVED.filter((s) => s.type === f).length}
+                    {f === "Todos" ? safeData.length : safeData.filter((s) => s.type === f).length}
                   </span>
                 </button>
               ))}
               <span style={{ width: 1, height: 18, background: "var(--line)", margin: "0 4px" }} />
-              <button className="chip">Esta semana</button>
-              <button className="chip">Por marco</button>
-              <button className="chip">Por ocasión</button>
+              <button type="button" className="chip">Esta semana</button>
+              <button type="button" className="chip">Por marco</button>
+              <button type="button" className="chip">Por ocasión</button>
             </div>
             <div className="row" style={{ gap: 4 }}>
-              <button className="btn-icon"
+              <button type="button" className="btn-icon"
                 onClick={() => setView("grid")}
                 style={{ color: view === "grid" ? "var(--ink)" : "var(--ink-4)" }}>
                 <IcOutline size={16} />
               </button>
-              <button className="btn-icon"
+              <button type="button" className="btn-icon"
                 onClick={() => setView("list")}
                 style={{ color: view === "list" ? "var(--ink)" : "var(--ink-4)" }}>
                 <IcMenu size={16} />
               </button>
               <span style={{ width: 1, height: 18, background: "var(--line)", margin: "0 4px" }} />
-              <button className="btn-quiet" style={{ fontSize: 11.5 }}>
+              <button type="button" className="btn-quiet" style={{ fontSize: 11.5 }}>
                 Más recientes <IcChevronD size={12} />
               </button>
             </div>
           </div>
 
-          <FeaturedCard sermon={SAVED[0]} onOpen={onOpenSermon} />
+          <FeaturedCard sermon={safeData[0]} onOpen={onOpenSermon} />
 
           <div className="rule-fancy" style={{ margin: "28px 0 16px" }}>
             <span className="eyebrow">Recientes</span>

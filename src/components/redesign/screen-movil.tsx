@@ -6,7 +6,7 @@ import { TypePill } from "./shared";
 import { IOSDevice, AndroidDevice } from "./frames";
 import {
   ICONS, IcSpark, IcChat, IcLibrary, IcBook, IcSlide, IcCalendar, IcChevron,
-  IcAttach, IcMic, IcSearch, IcMore, IcArrowRight, IcEye, IcPlus, IcShare,
+  IcAttach, IcMic, IcSearch, IcMore, IcArrowRight, IcArrowUp, IcEye, IcPlus, IcShare,
   IcRefresh, IcSliders, IcMenu, IcCheck,
 } from "./icons";
 
@@ -114,6 +114,31 @@ function IOSScreen({ screen }: { screen: string }) {
 const BOTTOM_OFFSET_FULLSCREEN = "calc(env(safe-area-inset-bottom, 0px) + 72px)";
 
 export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}) {
+  const [messages, setMessages] = React.useState<{ role: "user" | "ai"; text: string; id: number }[]>([]);
+  const [input, setInput] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+  const endRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, sending]);
+
+  function send(text?: string) {
+    const t = (text ?? input).trim();
+    if (!t || sending) return;
+    setMessages((m) => [...m, { role: "user", text: t, id: Date.now() }]);
+    setInput("");
+    setSending(true);
+    setTimeout(() => {
+      setMessages((m) => [...m, {
+        role: "ai",
+        text: `Trabajemos sobre eso. Aquí va una primera dirección:\n\nIdea central: ${t.toLowerCase().includes("fe") ? "La fe no es ausencia de temblor; es el suelo invisible que aparece bajo el pie justo cuando das el paso." : "Buscamos una sola idea, clara y memorable, que sostenga todo el mensaje."}\n\n¿Quieres que lo desarrolle como expositivo o prefieres un enfoque temático?`,
+        id: Date.now() + 1,
+      }]);
+      setSending(false);
+    }, 950);
+  }
+
   return (
     <>
       <div style={{ padding: "10px 20px 14px" }}>
@@ -137,73 +162,94 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 96px" }}>
-        <span className="pill" style={{ fontSize: 9, padding: "2px 8px" }}>· Semana 21</span>
-        <h1 className="display" style={{ fontSize: 28, lineHeight: 1.05, marginTop: 8, fontWeight: 500 }}>
-          Buenas tardes,<br />
-          <span style={{ color: "var(--accent)", fontStyle: "italic" }}>Gamaliel.</span>
-        </h1>
-        <p className="serif muted" style={{ fontSize: 13, marginTop: 6, marginBottom: 18 }}>
-          Empieza con una idea, una cita o elige una sugerencia.
-        </p>
-
-        <div className="rule-fancy" style={{ margin: "10px 0 12px" }}>
-          <span className="eyebrow" style={{ fontSize: 9 }}>Sugerencias</span>
-        </div>
-
-        <div className="col" style={{ gap: 8 }}>
-          {([
-            ["Sermón sobre la fe que vence el temor", "Expositivo · 25 min", "IcSpark"],
-            ["Reflexión sobre el Salmo 23", "Devocional · 10 min", "IcBook"],
-            ["Clase sobre la oración", "Clase · 45 min", "IcCross"],
-          ] as [string, string, string][]).map(([t, s, ic], i) => {
-            const I = ICONS[ic] || IcSpark;
-            return (
-              <div key={i} style={{
-                display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 10,
-                padding: "10px 12px",
-                background: "var(--paper-2)",
-                border: "1px solid var(--line)",
-                borderRadius: 14, alignItems: "center",
-              }}>
-                <div style={{
-                  width: 30, height: 30, borderRadius: 8,
-                  background: "color-mix(in oklab, var(--accent) 10%, transparent)",
-                  color: "var(--accent)",
-                  display: "grid", placeItems: "center",
-                }}><I size={14} /></div>
-                <div>
-                  <div className="serif" style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.25 }}>{t}</div>
-                  <div className="ui muted" style={{ fontSize: 10.5 }}>{s}</div>
-                </div>
-                <IcChevron size={14} className="muted" />
+        {fullscreen && messages.length > 0 ? (
+          <div className="col" style={{ gap: 12 }}>
+            {messages.map((m) => (
+              <div key={m.id} className={"bubble " + (m.role === "user" ? "bubble-user" : "bubble-ai")}
+                style={{ fontSize: 14, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
+                {m.text}
               </div>
-            );
-          })}
-        </div>
-
-        <div className="rule-fancy" style={{ margin: "20px 0 12px" }}>
-          <span className="eyebrow" style={{ fontSize: 9 }}>Recientes</span>
-        </div>
-
-        <div className="col" style={{ gap: 8 }}>
-          {SAVED.slice(0, 2).map((s) => (
-            <div key={s.id} style={{
-              padding: "12px 14px",
-              border: "1px solid var(--line)",
-              borderRadius: 14,
-              background: "var(--paper)",
-            }}>
-              <div className="row" style={{ gap: 8, marginBottom: 4 }}>
-                <TypePill type={s.type} />
-                <span className="ui muted" style={{ fontSize: 10 }}>· {s.scripture}</span>
+            ))}
+            {sending && (
+              <div className="bubble bubble-ai" style={{ display: "inline-flex", alignItems: "center", gap: 6, maxWidth: 80 }}>
+                <span className="typing"><span /><span /><span /></span>
               </div>
-              <div className="display" style={{ fontSize: 16, lineHeight: 1.2 }}>{s.title}</div>
-              <p className="serif muted" style={{ fontSize: 12, marginTop: 4, fontStyle: "italic" }}>
-                “{s.excerpt.slice(0, 80)}…”
-              </p>
+            )}
+            <div ref={endRef} />
+          </div>
+        ) : (
+          <>
+            <span className="pill" style={{ fontSize: 9, padding: "2px 8px" }}>· Semana 21</span>
+            <h1 className="display" style={{ fontSize: 28, lineHeight: 1.05, marginTop: 8, fontWeight: 500 }}>
+              Buenas tardes,<br />
+              <span style={{ color: "var(--accent)", fontStyle: "italic" }}>Gamaliel.</span>
+            </h1>
+            <p className="serif muted" style={{ fontSize: 13, marginTop: 6, marginBottom: 18 }}>
+              Empieza con una idea, una cita o elige una sugerencia.
+            </p>
+
+            <div className="rule-fancy" style={{ margin: "10px 0 12px" }}>
+              <span className="eyebrow" style={{ fontSize: 9 }}>Sugerencias</span>
             </div>
-          ))}
-        </div>
+
+            <div className="col" style={{ gap: 8 }}>
+              {([
+                ["Sermón sobre la fe que vence el temor", "Expositivo · 25 min", "IcSpark"],
+                ["Reflexión sobre el Salmo 23", "Devocional · 10 min", "IcBook"],
+                ["Clase sobre la oración", "Clase · 45 min", "IcCross"],
+              ] as [string, string, string][]).map(([t, s, ic], i) => {
+                const I = ICONS[ic] || IcSpark;
+                return (
+                  <button type="button" key={i} onClick={() => fullscreen && send(t)} style={{
+                    display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 10,
+                    padding: "10px 12px",
+                    background: "var(--paper-2)",
+                    border: "1px solid var(--line)",
+                    borderRadius: 14, alignItems: "center",
+                    cursor: fullscreen ? "pointer" : "default",
+                    textAlign: "left",
+                  }}>
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 8,
+                      background: "color-mix(in oklab, var(--accent) 10%, transparent)",
+                      color: "var(--accent)",
+                      display: "grid", placeItems: "center",
+                    }}><I size={14} /></div>
+                    <div>
+                      <div className="serif" style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.25 }}>{t}</div>
+                      <div className="ui muted" style={{ fontSize: 10.5 }}>{s}</div>
+                    </div>
+                    <IcChevron size={14} className="muted" />
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="rule-fancy" style={{ margin: "20px 0 12px" }}>
+              <span className="eyebrow" style={{ fontSize: 9 }}>Recientes</span>
+            </div>
+
+            <div className="col" style={{ gap: 8 }}>
+              {SAVED.slice(0, 2).map((s) => (
+                <div key={s.id} style={{
+                  padding: "12px 14px",
+                  border: "1px solid var(--line)",
+                  borderRadius: 14,
+                  background: "var(--paper)",
+                }}>
+                  <div className="row" style={{ gap: 8, marginBottom: 4 }}>
+                    <TypePill type={s.type} />
+                    <span className="ui muted" style={{ fontSize: 10 }}>· {s.scripture}</span>
+                  </div>
+                  <div className="display" style={{ fontSize: 16, lineHeight: 1.2 }}>{s.title}</div>
+                  <p className="serif muted" style={{ fontSize: 12, marginTop: 4, fontStyle: "italic" }}>
+                    "{s.excerpt.slice(0, 80)}…"
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{
@@ -222,15 +268,37 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
           display: "flex", alignItems: "center", gap: 8,
         }}>
           <IcAttach size={16} className="muted" />
-          <span className="serif muted" style={{ fontSize: 14, fontStyle: "italic", flex: 1 }}>
-            Pregunta o pide un sermón…
-          </span>
-          <div style={{
-            width: 30, height: 30, borderRadius: "50%",
-            background: "var(--accent)",
-            display: "grid", placeItems: "center",
-            color: "#fff",
-          }}><IcMic size={14} /></div>
+          {fullscreen ? (
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
+              placeholder="Pregunta o pide un sermón…"
+              style={{
+                flex: 1, background: "transparent", border: "none", outline: "none",
+                fontFamily: "var(--font-body)", fontSize: 14, color: "var(--ink)",
+                fontStyle: "italic",
+              }}
+            />
+          ) : (
+            <span className="serif muted" style={{ fontSize: 14, fontStyle: "italic", flex: 1 }}>
+              Pregunta o pide un sermón…
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => fullscreen ? send() : undefined}
+            disabled={fullscreen ? (!input.trim() || sending) : false}
+            style={{
+              width: 30, height: 30, borderRadius: "50%",
+              background: fullscreen && input.trim() && !sending ? "var(--accent)" : fullscreen ? "var(--ink-4)" : "var(--accent)",
+              display: "grid", placeItems: "center",
+              color: "#fff", border: "none", cursor: "pointer",
+              transition: "background .15s",
+            }}
+          >
+            {fullscreen && input.trim() ? <IcArrowUp size={14} /> : <IcMic size={14} />}
+          </button>
         </div>
 
         {!fullscreen && (
@@ -266,61 +334,119 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
 }
 
 export function IOSSermon({ fullscreen = false }: { fullscreen?: boolean } = {}) {
+  const [tab, setTab] = React.useState(0);
+  const TABS = ["Texto", "Bosquejo", "Slides", "Imagenes"];
+
   return (
     <>
       <div style={{ padding: "8px 16px 12px" }}>
         <div className="row" style={{ justifyContent: "space-between" }}>
-          <button style={{ color: "var(--accent)", fontFamily: "var(--font-ui)", fontSize: 14 }}>
-            <IcArrowRight size={16} style={{ transform: "rotate(180deg)", verticalAlign: -3 }} /> Atrás
-          </button>
+          {!fullscreen && (
+            <button type="button" style={{ color: "var(--accent)", fontFamily: "var(--font-ui)", fontSize: 14 }}>
+              <IcArrowRight size={16} style={{ transform: "rotate(180deg)", verticalAlign: -3 }} /> Atras
+            </button>
+          )}
           <span className="ui muted" style={{ fontSize: 11 }}>27 min · 2.4k pal.</span>
-          <button><IcMore size={18} className="muted" /></button>
+          <button type="button"><IcMore size={18} className="muted" /></button>
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 80px" }}>
-        <TypePill type="Sermón" />
+        <TypePill type="Sermon" />
         <h1 className="display" style={{ fontSize: 24, fontWeight: 500, lineHeight: 1.1, marginTop: 8 }}>
           El temor que se rinde a la fe
         </h1>
         <p className="serif" style={{ fontSize: 14, fontStyle: "italic", color: "var(--ink-2)", marginTop: 6 }}>
-          La fe no espera a que el miedo se vaya; camina con él hasta confiar.
+          La fe no espera a que el miedo se vaya; camina con el hasta confiar.
         </p>
         <div className="ui muted" style={{ fontSize: 11, marginTop: 8 }}>
-          Hebreos 11:1–6 · Bautista · PEICA
+          Hebreos 11:1-6 · Bautista · PEICA
         </div>
 
         <div className="row" style={{ gap: 4, marginTop: 16, background: "var(--paper-2)", padding: 4, borderRadius: 10 }}>
-          {["Texto", "Bosquejo", "Slides", "Imágenes"].map((t, i) => (
-            <div key={t} style={{
+          {TABS.map((t, i) => (
+            <button type="button" key={t} onClick={() => setTab(i)} style={{
               flex: 1, padding: "6px 0", textAlign: "center",
-              background: i === 0 ? "var(--paper)" : "transparent",
-              borderRadius: 7,
+              background: tab === i ? "var(--paper)" : "transparent",
+              borderRadius: 7, border: "none", cursor: "pointer",
               fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 500,
-              color: i === 0 ? "var(--accent)" : "var(--ink-3)",
-              boxShadow: i === 0 ? "0 1px 3px color-mix(in oklab, var(--ink) 10%, transparent)" : "none",
-            }}>{t}</div>
+              color: tab === i ? "var(--accent)" : "var(--ink-3)",
+              boxShadow: tab === i ? "0 1px 3px color-mix(in oklab, var(--ink) 10%, transparent)" : "none",
+            }}>{t}</button>
           ))}
         </div>
 
         <div style={{ marginTop: 18 }}>
-          <div className="eyebrow" style={{ marginBottom: 6, fontSize: 9 }}>0 · Introducción</div>
-          <p className="dropcap" style={{ fontSize: 14.5, lineHeight: 1.65 }}>
-            Hay un temor que cierra las puertas por dentro y otro que despierta antes del amanecer para orar. Los discípulos conocían ambos.
-          </p>
-
-          <blockquote className="scripture" style={{ margin: "14px 0", padding: "12px 14px", fontSize: 13.5 }}>
-            Es, pues, la fe la certeza de lo que se espera.
-            <cite style={{ fontSize: 9.5 }}>Hebreos 11:1 · RVR1960</cite>
-          </blockquote>
-
-          <div className="eyebrow" style={{ marginTop: 16, marginBottom: 6, fontSize: 9 }}>I · Punto 1</div>
-          <h3 className="display" style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>
-            Certeza, no ausencia de temblor
-          </h3>
-          <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-            En griego, <em>hypostasis</em>: aquello que sostiene por debajo. La fe es el suelo invisible bajo el pie.
-          </p>
+          {tab === 0 && (
+            <>
+              <div className="eyebrow" style={{ marginBottom: 6, fontSize: 9 }}>0 · Introduccion</div>
+              <p style={{ fontSize: 14.5, lineHeight: 1.65 }}>
+                Hay un temor que cierra las puertas por dentro y otro que despierta antes del amanecer para orar. Los discipulos conocian ambos.
+              </p>
+              <blockquote className="scripture" style={{ margin: "14px 0", padding: "12px 14px", fontSize: 13.5 }}>
+                Es, pues, la fe la certeza de lo que se espera.
+                <cite style={{ fontSize: 9.5 }}>Hebreos 11:1 · RVR1960</cite>
+              </blockquote>
+              <div className="eyebrow" style={{ marginTop: 16, marginBottom: 6, fontSize: 9 }}>I · Punto 1</div>
+              <h3 className="display" style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>
+                Certeza, no ausencia de temblor
+              </h3>
+              <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+                En griego, hypostasis: aquello que sostiene por debajo. La fe es el suelo invisible bajo el pie.
+              </p>
+            </>
+          )}
+          {tab === 1 && (
+            <div className="col" style={{ gap: 12 }}>
+              {[
+                ["Introduccion", "El doble rostro del temor en los discipulos"],
+                ["I. Certeza", "La fe como hypostasis — suelo invisible bajo el pie"],
+                ["II. Historia", "Abraham: partio sin saber a donde iba (Heb 11:8)"],
+                ["III. Aplicacion", "Fe que camina con el temor, no despues de el"],
+                ["Conclusion", "El temor que se rinde no muere — descansa"],
+              ].map(([pt, desc], i) => (
+                <div key={i} style={{ padding: "12px 14px", background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 12 }}>
+                  <div className="eyebrow" style={{ fontSize: 9, marginBottom: 4 }}>{pt}</div>
+                  <div className="serif" style={{ fontSize: 13, lineHeight: 1.4 }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab === 2 && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {["Introduccion", "Punto I", "Punto II", "Conclusion"].map((sl, i) => (
+                <div key={i} className="deck-hillsong" style={{
+                  aspectRatio: "4/3", borderRadius: 12, padding: 12,
+                  display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                }}>
+                  <div style={{ fontFamily: "var(--font-ui)", fontSize: 8, opacity: 0.7, textTransform: "uppercase", letterSpacing: ".1em", color: "#fff" }}>
+                    Diapositiva {i + 1}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 13, color: "#fff", lineHeight: 1.2 }}>
+                    {sl}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab === 3 && (
+            <div className="col" style={{ gap: 10 }}>
+              {[
+                "La fe no espera a que el miedo se vaya",
+                "Certeza, no ausencia de temblor",
+                "El suelo invisible bajo el pie",
+              ].map((phrase, i) => (
+                <div key={i} style={{
+                  padding: "14px 16px", borderRadius: 14,
+                  background: i === 0 ? "color-mix(in oklab, var(--accent) 8%, var(--paper-2))" : "var(--paper-2)",
+                  border: "1px solid " + (i === 0 ? "var(--accent)" : "var(--line)"),
+                }}>
+                  <div className="display" style={{ fontSize: 17, lineHeight: 1.2, fontStyle: "italic" }}>{phrase}</div>
+                  <div className="ui muted" style={{ fontSize: 10, marginTop: 6 }}>Hebreos 11 · ipreach</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -337,7 +463,7 @@ export function IOSSermon({ fullscreen = false }: { fullscreen?: boolean } = {})
           borderRadius: 16,
           fontFamily: "var(--font-ui)", fontSize: 12,
           color: "var(--ink-3)",
-        }}>Notas, ilustración, ✠ cierre…</div>
+        }}>Notas, ilustracion, cierre...</div>
         <div style={{
           width: 44, height: 44,
           background: "var(--accent)", color: "#fff",
@@ -390,7 +516,7 @@ export function IOSBiblio({ fullscreen = false }: { fullscreen?: boolean } = {})
               </div>
               <div className="display" style={{ fontSize: 16.5, lineHeight: 1.15, fontWeight: 500 }}>{s.title}</div>
               <p className="serif muted" style={{ fontSize: 12, marginTop: 4, fontStyle: "italic", lineHeight: 1.4 }}>
-                “{s.excerpt.slice(0, 72)}…”
+                "{s.excerpt.slice(0, 72)}…"
               </p>
               <div className="row" style={{ marginTop: 8, justifyContent: "space-between" }}>
                 <span className="ui muted" style={{ fontSize: 10.5 }}>{s.duration} · {s.method.split(" · ")[0]}</span>
@@ -419,14 +545,26 @@ export function IOSBiblio({ fullscreen = false }: { fullscreen?: boolean } = {})
 }
 
 export function IOSSerie({ fullscreen: _fullscreen = false }: { fullscreen?: boolean } = {}) {
+  const [selectedPart, setSelectedPart] = React.useState<number | null>(null);
+
+  const parts: [string, string, string, boolean][] = [
+    ["01", "Bienaventurados los pobres en espiritu", "Predicado · 17 May", true],
+    ["02", "Bienaventurados los que lloran", "Predicado · 24 May", true],
+    ["03", "Bienaventurados los mansos", "Proximo · 31 May", false],
+    ["04", "Hambre y sed de justicia", "Borrador", false],
+    ["05", "Bienaventurados los misericordiosos", "Borrador", false],
+  ];
+
   return (
     <>
       <div style={{ padding: "8px 16px" }}>
         <div className="row" style={{ justifyContent: "space-between" }}>
-          <button style={{ color: "var(--accent)", fontFamily: "var(--font-ui)", fontSize: 14 }}>
-            <IcArrowRight size={16} style={{ transform: "rotate(180deg)", verticalAlign: -3 }} /> Series
-          </button>
-          <button><IcShare size={18} className="muted" /></button>
+          {!_fullscreen && (
+            <button type="button" style={{ color: "var(--accent)", fontFamily: "var(--font-ui)", fontSize: 14 }}>
+              <IcArrowRight size={16} style={{ transform: "rotate(180deg)", verticalAlign: -3 }} /> Series
+            </button>
+          )}
+          <button type="button"><IcShare size={18} className="muted" /></button>
         </div>
       </div>
 
@@ -463,7 +601,7 @@ export function IOSSerie({ fullscreen: _fullscreen = false }: { fullscreen?: boo
 
         <div style={{ padding: "0 20px" }}>
           <p className="serif" style={{ fontSize: 15, fontStyle: "italic", color: "var(--ink-2)", lineHeight: 1.5 }}>
-            “Una serie sobre los gestos del corazón que reciben el reino. Cada parte es una bienaventuranza encarnada.”
+            "Una serie sobre los gestos del corazón que reciben el reino. Cada parte es una bienaventuranza encarnada."
           </p>
 
           <div className="row" style={{ gap: 4, marginTop: 14 }}>
@@ -482,29 +620,47 @@ export function IOSSerie({ fullscreen: _fullscreen = false }: { fullscreen?: boo
           </div>
 
           <div className="eyebrow" style={{ marginTop: 20, marginBottom: 8, fontSize: 9 }}>Partes</div>
-          {([
-            ["01", "Bienaventurados los pobres en espíritu", "Predicado · 17 May", true],
-            ["02", "Bienaventurados los que lloran", "Predicado · 24 May", true],
-            ["03", "Bienaventurados los mansos", "Próximo · 31 May", false],
-            ["04", "Hambre y sed de justicia", "Borrador", false],
-            ["05", "Bienaventurados los misericordiosos", "Borrador", false],
-          ] as [string, string, string, boolean][]).map(([n, t, s, done], i) => (
-            <div key={i} className="row" style={{ gap: 10, padding: "10px 0", borderBottom: "1px dashed var(--line-soft)" }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: 999,
-                border: "1.5px solid " + (done ? "var(--accent)" : "var(--ink-4)"),
-                background: done ? "var(--accent)" : "transparent",
-                color: done ? "#fff" : "var(--ink-4)",
-                display: "grid", placeItems: "center",
-                fontFamily: "var(--font-ui)", fontSize: 9, fontWeight: 700,
-                flexShrink: 0,
-              }}>{done ? <IcCheck size={12} /> : n}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="serif" style={{ fontSize: 13.5, lineHeight: 1.25 }}>{t}</div>
-                <div className="ui muted" style={{ fontSize: 10.5 }}>{s}</div>
-              </div>
-              <IcChevron size={14} className="muted" />
-            </div>
+          {parts.map(([n, t, s, done], i) => (
+            <React.Fragment key={i}>
+              <button type="button"
+                onClick={() => setSelectedPart(selectedPart === i ? null : i)}
+                style={{
+                  width: "100%", textAlign: "left",
+                  display: "flex", gap: 10, padding: "10px 0",
+                  background: selectedPart === i ? "color-mix(in oklab, var(--accent) 4%, transparent)" : "transparent",
+                  border: "none", cursor: "pointer",
+                  borderBottom: "1px dashed var(--line-soft)",
+                }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: 999,
+                  border: "1.5px solid " + (done ? "var(--accent)" : i === 2 ? "var(--accent)" : "var(--ink-4)"),
+                  background: done ? "var(--accent)" : "transparent",
+                  color: done ? "#fff" : i === 2 ? "var(--accent)" : "var(--ink-4)",
+                  display: "grid", placeItems: "center",
+                  fontFamily: "var(--font-ui)", fontSize: 9, fontWeight: 700,
+                  flexShrink: 0,
+                }}>{done ? <IcCheck size={12} /> : n}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="serif" style={{ fontSize: 13.5, lineHeight: 1.25, color: done ? "var(--ink-3)" : "var(--ink)" }}>{t}</div>
+                  <div className="ui muted" style={{ fontSize: 10.5 }}>{s}</div>
+                </div>
+                <IcChevron size={14} className="muted" style={{ transform: selectedPart === i ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
+              </button>
+              {selectedPart === i && !done && (
+                <div style={{ padding: "10px 0 10px 34px", borderBottom: "1px dashed var(--line-soft)" }}>
+                  <p className="serif muted" style={{ fontSize: 12.5, fontStyle: "italic", marginBottom: 10 }}>
+                    Preparar el siguiente sermon de la serie. ipreach generara un borrador expositivo basado en el contexto de la serie.
+                  </p>
+                  <button type="button" style={{
+                    background: "var(--accent)", color: "#fff", border: "none",
+                    borderRadius: 10, padding: "8px 14px",
+                    fontFamily: "var(--font-ui)", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  }}>
+                    Preparar este sermon
+                  </button>
+                </div>
+              )}
+            </React.Fragment>
           ))}
         </div>
       </div>
@@ -818,7 +974,7 @@ function AndroidSerie() {
         </div>
 
         <p className="serif" style={{ fontSize: 14.5, fontStyle: "italic", color: "var(--ink-2)", marginTop: 14, lineHeight: 1.5 }}>
-          “Cada parte es una bienaventuranza encarnada en la vida cotidiana.”
+          "Cada parte es una bienaventuranza encarnada en la vida cotidiana."
         </p>
 
         <div className="eyebrow" style={{ marginTop: 18, marginBottom: 8, fontSize: 9 }}>Partes</div>

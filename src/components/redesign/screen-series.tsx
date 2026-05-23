@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { TopBar } from "./shell";
-import { IcSliders, IcPlus, IcEye, IcEdit } from "./icons";
+import { IcSliders, IcPlus, IcEye, IcEdit, IcCheck, IcChevronD } from "./icons";
 
 type Serie = {
   id: string; title: string; sub: string; cover: string;
@@ -9,6 +9,7 @@ type Serie = {
 };
 
 export function SeriesScreen({ onOpenSermon }: { onOpenSermon: () => void }) {
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const series: Serie[] = [
     {
       id: "beat",
@@ -59,23 +60,51 @@ export function SeriesScreen({ onOpenSermon }: { onOpenSermon: () => void }) {
       />
       <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px 48px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gap: 18 }}>
-          {series.map((s) => <SeriesCard key={s.id} s={s} onOpen={onOpenSermon} />)}
+          {series.map((s) => (
+            <SeriesCard key={s.id} s={s} onOpen={onOpenSermon}
+              expanded={expandedId === s.id}
+              onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)} />
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function SeriesCard({ s, onOpen }: { s: Serie; onOpen: () => void }) {
+const PART_TITLES: Record<string, string[]> = {
+  beat: [
+    "Bienaventurados los pobres en espíritu",
+    "Bienaventurados los que lloran",
+    "Bienaventurados los mansos",
+    "Hambre y sed de justicia",
+    "Bienaventurados los misericordiosos",
+    "Bienaventurados los de limpio corazón",
+    "Bienaventurados los pacificadores",
+    "Bienaventurados los perseguidos",
+    "Conclusión — sal y luz del mundo",
+  ],
+  gal: [
+    "Introducción — otra doctrina",
+    "Justificados por la fe",
+    "La promesa y la ley",
+    "Hijos y herederos",
+    "Vivir por el Espíritu",
+    "Conclusión — nueva creación",
+  ],
+  ps: Array.from({ length: 15 }, (_, i) => `Salmo ${120 + i} — ${["Clamor del peregrino", "El guardador de Israel", "Alegría de ir a la casa del Señor", "Paz de Jerusalén", "Ojos hacia el Señor", "La ayuda viene de Dios", "Confianza bajo la lluvia", "Siembra y cosecha", "El Señor es justo", "Liberación del cautiverio", "El hogar que Dios edifica", "Hijos como flechas", "Bienaventurado el que teme al Señor", "El siervo que canta libre", "Esperanza en el Señor"][i]}`),
+};
+
+function SeriesCard({ s, onOpen, expanded, onToggle }: { s: Serie; onOpen: () => void; expanded: boolean; onToggle: () => void }) {
   const pct = Math.round((s.done / s.parts) * 100);
   return (
+    <>
     <div style={{
       display: "grid",
       gridTemplateColumns: "240px 1fr",
       gap: 24,
       padding: 22,
       border: "1px solid var(--line)",
-      borderRadius: "var(--r-lg)",
+      borderRadius: expanded ? "var(--r-lg) var(--r-lg) 0 0" : "var(--r-lg)",
       background: "var(--paper-2)",
     }}>
       <div className={"slide-tile " + s.cover} style={{ aspectRatio: "4/5", padding: 18, justifyContent: "space-between" }}>
@@ -132,11 +161,68 @@ function SeriesCard({ s, onOpen }: { s: Serie; onOpen: () => void }) {
             {s.next}
           </div>
           <div className="row" style={{ gap: 6 }}>
-            <button className="btn btn-ghost btn-sm"><IcEye size={14} /> Ver partes</button>
-            <button className="btn btn-ghost btn-sm" onClick={onOpen}><IcEdit size={14} /> Continuar</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onToggle}>
+              <IcEye size={14} /> Ver partes
+              <IcChevronD size={12} style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform .15s", marginLeft: 2 }} />
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onOpen}><IcEdit size={14} /> Continuar</button>
           </div>
         </div>
       </div>
     </div>
+
+    {expanded && (
+      <div style={{
+        border: "1px solid var(--line)", borderTop: "none",
+        borderRadius: "0 0 var(--r-lg) var(--r-lg)",
+        background: "var(--paper)", padding: "16px 24px 20px", marginTop: -6,
+      }}>
+        <div className="eyebrow" style={{ marginBottom: 12, fontSize: 9.5 }}>Partes de la serie</div>
+        <div className="col" style={{ gap: 0 }}>
+          {(PART_TITLES[s.id] ?? Array.from({ length: s.parts }, (_, i) => `Parte ${i + 1}`)).map((title, i) => {
+            const done = i < s.done;
+            const next = i === s.done;
+            return (
+              <div key={i} style={{
+                display: "grid", gridTemplateColumns: "24px 1fr auto", gap: 12, alignItems: "center",
+                padding: "10px 0",
+                borderBottom: i < s.parts - 1 ? "1px dashed var(--line-soft)" : "none",
+                background: next ? "color-mix(in oklab, var(--accent) 3%, transparent)" : "transparent",
+              }}>
+                <div style={{
+                  width: 22, height: 22, borderRadius: 999, flexShrink: 0,
+                  border: "1.5px solid " + (done ? "var(--accent)" : next ? "var(--accent)" : "var(--ink-4)"),
+                  background: done ? "var(--accent)" : "transparent",
+                  display: "grid", placeItems: "center",
+                  fontFamily: "var(--font-ui)", fontSize: 9, fontWeight: 700,
+                  color: done ? "#fff" : next ? "var(--accent)" : "var(--ink-4)",
+                }}>
+                  {done ? <IcCheck size={11} /> : String(i + 1).padStart(2, "0")}
+                </div>
+                <div>
+                  <div className="serif" style={{
+                    fontSize: 13.5, lineHeight: 1.3,
+                    color: done ? "var(--ink-3)" : "var(--ink)",
+                    textDecoration: done ? "line-through" : "none",
+                  }}>{title}</div>
+                  {next && <div className="ui" style={{ fontSize: 10.5, color: "var(--accent)", fontWeight: 600, marginTop: 2 }}>Siguiente a predicar</div>}
+                </div>
+                {next && (
+                  <button type="button" className="btn btn-accent btn-sm" onClick={onOpen} style={{ fontSize: 11 }}>
+                    Abrir
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="row" style={{ gap: 8, marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+          <button type="button" className="btn btn-accent btn-sm" onClick={onOpen}>
+            <IcPlus size={14} /> Nueva parte
+          </button>
+        </div>
+      </div>
+    )}
+  </>
   );
 }

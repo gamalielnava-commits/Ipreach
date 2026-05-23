@@ -40,6 +40,9 @@ export default function UserMenu() {
   return (
     <div className="flex items-center gap-3 text-sm">
       <span className="hidden text-stone-500 sm:inline">{email}</span>
+      <Link href="/settings" className="text-stone-600 hover:text-brand-700">
+        Configuración
+      </Link>
       <button
         onClick={signOut}
         className="text-stone-600 hover:text-brand-700"

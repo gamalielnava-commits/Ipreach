@@ -111,7 +111,9 @@ function IOSScreen({ screen }: { screen: string }) {
   );
 }
 
-function IOSEstudio() {
+const BOTTOM_OFFSET_FULLSCREEN = "calc(env(safe-area-inset-bottom, 0px) + 72px)";
+
+export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}) {
   return (
     <>
       <div style={{ padding: "10px 20px 14px" }}>
@@ -202,7 +204,11 @@ function IOSEstudio() {
         </div>
       </div>
 
-      <div style={{ position: "absolute", bottom: 50, left: 16, right: 16, zIndex: 10 }}>
+      <div style={{
+        position: fullscreen ? "fixed" : "absolute",
+        bottom: fullscreen ? BOTTOM_OFFSET_FULLSCREEN : 50,
+        left: 16, right: 16, zIndex: 10,
+      }}>
         <div style={{
           background: "color-mix(in oklab, var(--paper) 80%, transparent)",
           backdropFilter: "blur(20px) saturate(180%)",
@@ -225,37 +231,39 @@ function IOSEstudio() {
           }}><IcMic size={14} /></div>
         </div>
 
-        <div style={{
-          marginTop: 8, padding: "8px 12px",
-          background: "color-mix(in oklab, var(--paper) 60%, transparent)",
-          backdropFilter: "blur(20px) saturate(180%)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          border: "0.5px solid color-mix(in oklab, var(--ink) 10%, transparent)",
-          borderRadius: 22,
-          display: "flex", justifyContent: "space-around",
-        }}>
-          {([
-            ["Estudio", IcChat, true],
-            ["Bibli.", IcLibrary, false],
-            ["Serm.", IcBook, false],
-            ["Series", IcSlide, false],
-            ["Plan", IcCalendar, false],
-          ] as [string, (p: { size?: number; style?: React.CSSProperties }) => React.JSX.Element, boolean][]).map(([n, I, active], i) => (
-            <div key={i} className="col" style={{ alignItems: "center", gap: 2, opacity: active ? 1 : 0.55 }}>
-              <I size={18} style={{ color: active ? "var(--accent)" : "var(--ink-3)" }} />
-              <span className="ui" style={{
-                fontSize: 9, fontWeight: 600, letterSpacing: ".04em",
-                color: active ? "var(--accent)" : "var(--ink-3)",
-              }}>{n}</span>
-            </div>
-          ))}
-        </div>
+        {!fullscreen && (
+          <div style={{
+            marginTop: 8, padding: "8px 12px",
+            background: "color-mix(in oklab, var(--paper) 60%, transparent)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            WebkitBackdropFilter: "blur(20px) saturate(180%)",
+            border: "0.5px solid color-mix(in oklab, var(--ink) 10%, transparent)",
+            borderRadius: 22,
+            display: "flex", justifyContent: "space-around",
+          }}>
+            {([
+              ["Estudio", IcChat, true],
+              ["Bibli.", IcLibrary, false],
+              ["Serm.", IcBook, false],
+              ["Series", IcSlide, false],
+              ["Plan", IcCalendar, false],
+            ] as [string, (p: { size?: number; style?: React.CSSProperties }) => React.JSX.Element, boolean][]).map(([n, I, active], i) => (
+              <div key={i} className="col" style={{ alignItems: "center", gap: 2, opacity: active ? 1 : 0.55 }}>
+                <I size={18} style={{ color: active ? "var(--accent)" : "var(--ink-3)" }} />
+                <span className="ui" style={{
+                  fontSize: 9, fontWeight: 600, letterSpacing: ".04em",
+                  color: active ? "var(--accent)" : "var(--ink-3)",
+                }}>{n}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
 }
 
-function IOSSermon() {
+export function IOSSermon({ fullscreen = false }: { fullscreen?: boolean } = {}) {
   return (
     <>
       <div style={{ padding: "8px 16px 12px" }}>
@@ -314,7 +322,11 @@ function IOSSermon() {
         </div>
       </div>
 
-      <div style={{ position: "absolute", bottom: 50, left: 16, right: 16, display: "flex", gap: 8 }}>
+      <div style={{
+        position: fullscreen ? "fixed" : "absolute",
+        bottom: fullscreen ? BOTTOM_OFFSET_FULLSCREEN : 50,
+        left: 16, right: 16, display: "flex", gap: 8, zIndex: 10,
+      }}>
         <div style={{
           flex: 1, padding: "12px 14px",
           background: "color-mix(in oklab, var(--paper) 80%, transparent)",
@@ -335,7 +347,7 @@ function IOSSermon() {
   );
 }
 
-function IOSBiblio() {
+export function IOSBiblio({ fullscreen = false }: { fullscreen?: boolean } = {}) {
   return (
     <>
       <div style={{ padding: "8px 20px 8px" }}>
@@ -388,12 +400,15 @@ function IOSBiblio() {
       </div>
 
       <div style={{
-        position: "absolute", bottom: 62, right: 18,
+        position: fullscreen ? "fixed" : "absolute",
+        bottom: fullscreen ? `calc(env(safe-area-inset-bottom, 0px) + 80px)` : 62,
+        right: 18,
         width: 52, height: 52, borderRadius: "50%",
         background: "var(--accent)",
         color: "#fff",
         display: "grid", placeItems: "center",
         boxShadow: "0 12px 28px color-mix(in oklab, var(--accent) 40%, transparent)",
+        zIndex: 10,
       }}>
         <IcPlus size={22} />
       </div>
@@ -401,7 +416,7 @@ function IOSBiblio() {
   );
 }
 
-function IOSSerie() {
+export function IOSSerie({ fullscreen: _fullscreen = false }: { fullscreen?: boolean } = {}) {
   return (
     <>
       <div style={{ padding: "8px 16px" }}>

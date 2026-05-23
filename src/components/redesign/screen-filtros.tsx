@@ -27,7 +27,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
         backdropFilter: "blur(2px)", zIndex: 50,
       }} />
       <aside style={{
-        position: "fixed", right: 0, top: 0, bottom: 0, width: 400, zIndex: 60,
+        position: "fixed", right: 0, top: 0, bottom: 0, width: "min(400px, 100vw)", zIndex: 60,
         background: "var(--paper)", borderLeft: "1px solid var(--line)",
         boxShadow: "-20px 0 60px color-mix(in oklab, var(--ink) 18%, transparent)",
         display: "flex", flexDirection: "column",
@@ -38,8 +38,8 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
             <span className="sec-title" style={{ fontSize: 22 }}>Filtros del sermón</span>
           </div>
           <span className="spacer" />
-          <button className="btn btn-ghost btn-sm">Restablecer</button>
-          <button className="btn-icon" onClick={onClose} style={{ marginLeft: 6 }}><IcClose size={16} /></button>
+          <button type="button" className="btn btn-ghost btn-sm">Restablecer</button>
+          <button type="button" className="btn-icon" onClick={onClose} style={{ marginLeft: 6 }}><IcClose size={16} /></button>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -51,7 +51,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
                 ["devocional", "Devocional", IcBookmark],
                 ["clase", "Clase", IcCross],
               ] as [string, string, (p: { size?: number; style?: React.CSSProperties }) => React.JSX.Element][]).map(([k, n, I]) => (
-                <button key={k}
+                <button type="button" key={k}
                   onClick={() => setContentType(k)}
                   style={{
                     padding: "10px 8px",
@@ -82,7 +82,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
             <span className="eyebrow">Tipo de sermón · máx. 2</span>
             <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
               {["Expositivo", "Textual", "Temático", "Narrativo", "Biográfico", "Doctrinal", "Devocional", "Evangelístico"].map((t) => (
-                <button key={t} className={"chip " + (t === "Expositivo" ? "chip-on" : "")}>{t}</button>
+                <button type="button" key={t} className={"chip " + (t === "Expositivo" ? "chip-on" : "")}>{t}</button>
               ))}
             </div>
           </div>
@@ -91,7 +91,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
             onToggle={() => setOpenSection((o) => ({ ...o, method: !o.method }))}>
             <div className="col" style={{ gap: 6 }}>
               {METHODS.slice(0, 5).map((m) => (
-                <button key={m.slug}
+                <button type="button" key={m.slug}
                   onClick={() => setMethod(m.slug)}
                   style={{
                     textAlign: "left",
@@ -118,7 +118,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
                   </div>
                 </button>
               ))}
-              <button className="btn-quiet" style={{ fontSize: 11, alignSelf: "flex-start", marginTop: 4 }}>
+              <button type="button" className="btn-quiet" style={{ fontSize: 11, alignSelf: "flex-start", marginTop: 4 }}>
                 Ver los 9 métodos <IcChevron size={12} />
               </button>
             </div>
@@ -131,7 +131,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
                 <div className="eyebrow" style={{ marginBottom: 6, fontSize: 9.5 }}>{cat}</div>
                 <div className="row" style={{ gap: 5, flexWrap: "wrap" }}>
                   {items.map((t) => (
-                    <button key={t} className={"chip " + (themes.includes(t) ? "chip-on" : "")}
+                    <button type="button" key={t} className={"chip " + (themes.includes(t) ? "chip-on" : "")}
                       onClick={() => toggle(themes, t, setThemes)}>
                       {t}
                     </button>
@@ -144,7 +144,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
           <Collapsible title="Comentaristas">
             <div className="row" style={{ gap: 5, flexWrap: "wrap" }}>
               {COMMENTATORS.map((c) => (
-                <button key={c} className={"chip " + (commentators.includes(c) ? "chip-on" : "")}
+                <button type="button" key={c} className={"chip " + (commentators.includes(c) ? "chip-on" : "")}
                   onClick={() => toggle(commentators, c, setCommentators)}>
                   {c}
                 </button>
@@ -160,7 +160,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
                 ["mediano", "Mediano", "20–30 min"],
                 ["largo", "Largo", "35–45 min"],
               ] as [string, string, string][]).map(([k, n, d]) => (
-                <button key={k}
+                <button type="button" key={k}
                   onClick={() => setLength(k)}
                   style={{
                     padding: "10px 8px",
@@ -177,7 +177,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
             </div>
             <div className="row" style={{ gap: 6 }}>
               {([["solo-cita", "Solo la cita"], ["texto-completo", "Texto completo"]] as [string, string][]).map(([k, n]) => (
-                <button key={k}
+                <button type="button" key={k}
                   onClick={() => setVerseOpt(k)}
                   className={"chip " + (verseOpt === k ? "chip-on" : "")}
                   style={{ flex: 1, justifyContent: "center" }}>{n}</button>
@@ -192,7 +192,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
                 ["claude", "Claude · Opus", "Profundo y matizado"],
                 ["gemini", "Gemini · Pro", "Rápido y visual"],
               ] as [string, string, string][]).map(([k, n, d]) => (
-                <button key={k}
+                <button type="button" key={k}
                   onClick={() => setProvider(k)}
                   style={{
                     padding: "12px",
@@ -211,7 +211,7 @@ export function FiltersRail({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <div style={{ padding: 18, borderTop: "1px solid var(--line)" }}>
-          <button className="btn btn-accent" style={{ width: "100%", justifyContent: "center" }}
+          <button type="button" className="btn btn-accent" style={{ width: "100%", justifyContent: "center" }}
             onClick={onClose}>
             <IcCheck size={16} /> Aplicar filtros · 7 activos
           </button>
@@ -232,7 +232,7 @@ function Collapsible({ title, open: openIn, onToggle, children }: {
   const handle = onToggle ?? (() => setOpen((o) => !o));
   return (
     <div className="rail-section">
-      <button onClick={handle} style={{
+      <button type="button" onClick={handle} style={{
         display: "flex", width: "100%", alignItems: "center",
         marginBottom: isOpen ? 10 : 0, cursor: "pointer",
       }}>

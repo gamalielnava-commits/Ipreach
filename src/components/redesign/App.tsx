@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { Sidebar, Screen } from "./shell";
 import { CONVERSATIONS } from "./data";
 import { EstudioScreen } from "./screen-estudio";
@@ -14,8 +15,10 @@ import { OnboardingModal } from "./screen-onboarding";
 import { LoginScreen } from "./screen-login";
 import { PresenterScreen } from "./screen-presenter";
 import { PrintScreen } from "./screen-print";
+import { MobileShell } from "./mobile-shell";
 
 export default function App() {
+  const isMobile = useIsMobile();
   const [screen, setScreen] = React.useState<Screen>("estudio");
   const [activeConv, setActiveConv] = React.useState("c1");
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -43,6 +46,19 @@ export default function App() {
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
+
+  if (isMobile) {
+    return (
+      <>
+        <MobileShell
+          screen={screen}
+          setScreen={setScreen}
+          onOpenFilters={() => setFiltersOpen(true)}
+        />
+        <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} />
+      </>
+    );
+  }
 
   return (
     <div className="app" data-screen-label={screen}>

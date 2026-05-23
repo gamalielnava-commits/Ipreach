@@ -1,9 +1,9 @@
 "use client";
 import React from "react";
-import { IcChat, IcBook, IcLibrary, IcPlus, IcSlide, IcCalendar, IcShare, IcStar, IcSettings } from "./icons";
+import { IcChat, IcBook, IcLibrary, IcPlus, IcSlide, IcCalendar, IcShare, IcStar, IcSettings, IcSpark } from "./icons";
 
 export type Screen =
-  | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "movil" | "marca" | "perfil";
+  | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "movil" | "marca" | "perfil" | "planes";
 
 export function Wordmark() {
   return (
@@ -87,6 +87,11 @@ export function Sidebar({
           <IcStar size={16} /> Marca
           <span className="spacer" />
           <span className="pill" style={{ fontSize: 9, padding: "2px 6px" }}>Nuevo</span>
+        </button>
+        <button className={"nav-item " + (screen === "planes" ? "active" : "")} onClick={() => setScreen("planes")}>
+          <IcSpark size={16} /> Planes
+          <span className="spacer" />
+          <span className="pill" style={{ fontSize: 9, padding: "2px 6px" }}>Pro</span>
         </button>
       </nav>
 

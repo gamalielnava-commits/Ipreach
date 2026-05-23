@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Profile, ProfileDefaults } from "./types";
+import type { Profile, ProfileDefaults, SubscriptionStatus } from "./types";
 
 interface Row {
   id: string;
@@ -11,6 +11,9 @@ interface Row {
   church_context: string;
   defaults: ProfileDefaults;
   onboarded: boolean;
+  stripe_customer_id?: string;
+  subscription_status?: string;
+  subscription_ends_at?: string;
 }
 
 function toProfile(r: Row): Profile {
@@ -24,6 +27,9 @@ function toProfile(r: Row): Profile {
     churchContext: r.church_context ?? "",
     defaults: r.defaults ?? {},
     onboarded: r.onboarded,
+    stripeCustomerId: r.stripe_customer_id,
+    subscriptionStatus: (r.subscription_status as SubscriptionStatus) ?? "free",
+    subscriptionEndsAt: r.subscription_ends_at,
   };
 }
 
@@ -39,7 +45,9 @@ export async function getProfile(): Promise<Profile | null> {
   return data ? toProfile(data as Row) : null;
 }
 
-export async function saveProfile(profile: Omit<Profile, "id">): Promise<void> {
+type ProfileInput = Omit<Profile, "id" | "stripeCustomerId" | "subscriptionStatus" | "subscriptionEndsAt">;
+
+export async function saveProfile(profile: ProfileInput): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Inicia sesion.");
   const { error } = await supabase.from("profiles").upsert({

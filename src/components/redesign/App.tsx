@@ -17,6 +17,7 @@ import { PresenterScreen } from "./screen-presenter";
 import { PrintScreen } from "./screen-print";
 import { MobileShell } from "./mobile-shell";
 import { PerfilScreen } from "./screen-perfil";
+import { PlanesScreen } from "./screen-planes";
 import { getProfile } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/types";
@@ -95,6 +96,7 @@ export default function App() {
       {screen === "movil" && <MovilScreen />}
       {screen === "marca" && <MarcaScreen />}
       {screen === "perfil" && <PerfilScreen onBack={() => setScreen("estudio")} onProfileSaved={setProfile} />}
+      {screen === "planes" && <PlanesScreen profile={profile} />}
 
       <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} />
       <OnboardingModal open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />

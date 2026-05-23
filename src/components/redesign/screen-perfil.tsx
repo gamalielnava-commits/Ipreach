@@ -15,6 +15,7 @@ export function PerfilScreen({ onBack, onProfileSaved }: {
   const [busy, setBusy] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [loadedProfile, setLoadedProfile] = React.useState<Profile | null>(null);
 
   const [displayName, setDisplayName] = React.useState("");
   const [role, setRole] = React.useState("");
@@ -37,6 +38,7 @@ export function PerfilScreen({ onBack, onProfileSaved }: {
     (async () => {
       const p = await getProfile();
       if (p) {
+        setLoadedProfile(p);
         setDisplayName(p.displayName);
         setRole(p.role);
         setCountry(p.country);
@@ -57,19 +59,25 @@ export function PerfilScreen({ onBack, onProfileSaved }: {
     setError("");
     setSaved(false);
     try {
-      const p: Omit<Profile, "id"> = {
+      const input = {
         displayName: displayName.trim(),
         role,
         country: country.trim(),
         framework,
         churchName: churchName.trim(),
         churchContext: churchContext.trim(),
-        defaults: { sermonTypes: [sermonType], strategy, method, length, verseOption: "solo-cita", provider: "claude", bibleVersion: "RV1909" },
+        defaults: { sermonTypes: [sermonType], strategy, method, length, verseOption: "solo-cita" as const, provider: "claude" as const, bibleVersion: "RV1909" },
         onboarded: true,
       };
-      await saveProfile(p);
+      await saveProfile(input);
       setSaved(true);
-      onProfileSaved?.({ id: "", ...p });
+      onProfileSaved?.({
+        id: "",
+        ...input,
+        subscriptionStatus: loadedProfile?.subscriptionStatus ?? "free",
+        stripeCustomerId: loadedProfile?.stripeCustomerId,
+        subscriptionEndsAt: loadedProfile?.subscriptionEndsAt,
+      });
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar.");

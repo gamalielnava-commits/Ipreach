@@ -3,6 +3,7 @@ import React from "react";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { Sidebar, Screen } from "./shell";
 import { CONVERSATIONS } from "./data";
+import { IcMenu } from "./icons";
 import { EstudioScreen } from "./screen-estudio";
 import { BibliotecaScreen } from "./screen-biblioteca";
 import { SermonScreen } from "./screen-sermon";
@@ -32,6 +33,7 @@ export default function App() {
   const [presenterOpen, setPresenterOpen] = React.useState(false);
   const [printOpen, setPrintOpen] = React.useState(false);
   const [profile, setProfile] = React.useState<Profile | null>(null);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   React.useEffect(() => {
     document.documentElement.dataset.palette = "capilla";
@@ -80,6 +82,17 @@ export default function App() {
 
   return (
     <div className="app" data-screen-label={screen}>
+      <button
+        className="menu-btn"
+        aria-label="Abrir menú"
+        onClick={() => setSidebarOpen((o) => !o)}
+      >
+        <IcMenu size={18} />
+      </button>
+      <div
+        className={"sidebar-backdrop " + (sidebarOpen ? "open" : "")}
+        onClick={() => setSidebarOpen(false)}
+      />
       <Sidebar
         screen={screen}
         setScreen={setScreen}
@@ -87,6 +100,8 @@ export default function App() {
         activeConv={activeConv}
         setActiveConv={setActiveConv}
         profile={profile}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
       {screen === "estudio" && <EstudioScreen onOpenSermon={() => setScreen("sermon")} onOpenFilters={() => setFiltersOpen(true)} />}
       {screen === "biblioteca" && <BibliotecaScreen onOpenSermon={() => setScreen("sermon")} />}

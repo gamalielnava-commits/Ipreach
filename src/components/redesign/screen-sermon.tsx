@@ -23,7 +23,7 @@ export function SermonScreen({ onOpenFilters, onPresent, onPrint }: {
 
   return (
     <div className="main">
-      <div style={{ padding: "22px 32px 14px", borderBottom: "1px solid var(--line)" }}>
+      <div className="sermon-head">
         <div className="row" style={{ gap: 14, marginBottom: 10 }}>
           <TypePill type="Sermón" />
           <span className="ui muted" style={{ fontSize: 11.5 }}>{SERMON_SAMPLE.scripture}</span>

@@ -54,13 +54,12 @@ export function MovilScreen() {
         }
       />
 
-      <div style={{
+      <div className="movil-stage" style={{
         flex: 1, overflow: "auto",
         background:
           `radial-gradient(circle at 30% 20%, color-mix(in oklab, var(--accent) 5%, transparent), transparent 50%),
            radial-gradient(circle at 80% 80%, color-mix(in oklab, var(--gilt) 6%, transparent), transparent 50%),
            color-mix(in oklab, var(--paper) 90%, var(--paper-2))`,
-        padding: "32px 24px",
       }}>
         <div style={{ display: "flex", gap: 40, justifyContent: "center", alignItems: "flex-start", flexWrap: "wrap" }}>
           {(device === "both" || device === "ios") && (

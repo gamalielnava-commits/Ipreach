@@ -98,10 +98,7 @@ function SeriesCard({ s, onOpen, expanded, onToggle }: { s: Serie; onOpen: () =>
   const pct = Math.round((s.done / s.parts) * 100);
   return (
     <>
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "240px 1fr",
-      gap: 24,
+    <div className="series-card-grid" style={{
       padding: 22,
       border: "1px solid var(--line)",
       borderRadius: expanded ? "var(--r-lg) var(--r-lg) 0 0" : "var(--r-lg)",

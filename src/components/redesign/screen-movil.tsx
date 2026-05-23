@@ -123,20 +123,50 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
     if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, sending]);
 
-  function send(text?: string) {
+  async function send(text?: string) {
     const t = (text ?? input).trim();
     if (!t || sending) return;
-    setMessages((m) => [...m, { role: "user", text: t, id: Date.now() }]);
+    const userMsg = { role: "user" as const, text: t, id: Date.now() };
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
     setSending(true);
-    setTimeout(() => {
-      setMessages((m) => [...m, {
-        role: "ai",
-        text: `Trabajemos sobre eso. Aquí va una primera dirección:\n\nIdea central: ${t.toLowerCase().includes("fe") ? "La fe no es ausencia de temblor; es el suelo invisible que aparece bajo el pie justo cuando das el paso." : "Buscamos una sola idea, clara y memorable, que sostenga todo el mensaje."}\n\n¿Quieres que lo desarrolle como expositivo o prefieres un enfoque temático?`,
-        id: Date.now() + 1,
-      }]);
-      setSending(false);
-    }, 950);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          config: {
+            contentType: "sermon",
+            idea: "",
+            scripture: "",
+            framework: "asambleas-de-dios",
+            doctrinalThemes: [],
+            themes: [],
+            occasion: "",
+            sermonTypes: ["expositivo"],
+            strategy: "idea-central",
+            method: "peica",
+            commentators: [],
+            illustrationKinds: [],
+            length: "medio",
+            verseOption: "solo-cita",
+            provider: "claude",
+          },
+          messages: history.map((m) => ({
+            role: m.role === "ai" ? "assistant" : "user",
+            content: m.text,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Error generando respuesta.");
+      setMessages((m) => [...m, { role: "ai", text: data.text ?? "", id: Date.now() + 1 }]);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "Error de red.";
+      setMessages((m) => [...m, { role: "ai", text: `⚠️ ${err}`, id: Date.now() + 1 }]);
+    }
+    setSending(false);
   }
 
   return (

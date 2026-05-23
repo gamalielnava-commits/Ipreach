@@ -26,7 +26,7 @@ export default function OnboardingPage() {
   const [churchName, setChurchName] = useState("");
   const [churchContext, setChurchContext] = useState("");
   const [country, setCountry] = useState("");
-  const [framework, setFramework] = useState("");
+  const [framework, setFramework] = useState("asambleas-de-dios");
   const [sermonType, setSermonType] = useState("expositivo");
   const [strategy, setStrategy] = useState("idea-central");
   const [method, setMethod] = useState("peica");

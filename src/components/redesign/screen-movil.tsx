@@ -6,7 +6,7 @@ import { TypePill } from "./shared";
 import { IOSDevice, AndroidDevice } from "./frames";
 import {
   ICONS, IcSpark, IcChat, IcLibrary, IcBook, IcSlide, IcCalendar, IcChevron,
-  IcAttach, IcMic, IcSearch, IcMore, IcArrowRight, IcEye, IcPlus, IcShare,
+  IcAttach, IcMic, IcSearch, IcMore, IcArrowRight, IcArrowUp, IcEye, IcPlus, IcShare,
   IcRefresh, IcSliders, IcMenu, IcCheck,
 } from "./icons";
 
@@ -114,6 +114,31 @@ function IOSScreen({ screen }: { screen: string }) {
 const BOTTOM_OFFSET_FULLSCREEN = "calc(env(safe-area-inset-bottom, 0px) + 72px)";
 
 export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}) {
+  const [messages, setMessages] = React.useState<{ role: "user" | "ai"; text: string; id: number }[]>([]);
+  const [input, setInput] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+  const endRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, sending]);
+
+  function send(text?: string) {
+    const t = (text ?? input).trim();
+    if (!t || sending) return;
+    setMessages((m) => [...m, { role: "user", text: t, id: Date.now() }]);
+    setInput("");
+    setSending(true);
+    setTimeout(() => {
+      setMessages((m) => [...m, {
+        role: "ai",
+        text: `Trabajemos sobre eso. Aquí va una primera dirección:\n\nIdea central: ${t.toLowerCase().includes("fe") ? "La fe no es ausencia de temblor; es el suelo invisible que aparece bajo el pie justo cuando das el paso." : "Buscamos una sola idea, clara y memorable, que sostenga todo el mensaje."}\n\n¿Quieres que lo desarrolle como expositivo o prefieres un enfoque temático?`,
+        id: Date.now() + 1,
+      }]);
+      setSending(false);
+    }, 950);
+  }
+
   return (
     <>
       <div style={{ padding: "10px 20px 14px" }}>
@@ -137,73 +162,94 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 96px" }}>
-        <span className="pill" style={{ fontSize: 9, padding: "2px 8px" }}>· Semana 21</span>
-        <h1 className="display" style={{ fontSize: 28, lineHeight: 1.05, marginTop: 8, fontWeight: 500 }}>
-          Buenas tardes,<br />
-          <span style={{ color: "var(--accent)", fontStyle: "italic" }}>Gamaliel.</span>
-        </h1>
-        <p className="serif muted" style={{ fontSize: 13, marginTop: 6, marginBottom: 18 }}>
-          Empieza con una idea, una cita o elige una sugerencia.
-        </p>
-
-        <div className="rule-fancy" style={{ margin: "10px 0 12px" }}>
-          <span className="eyebrow" style={{ fontSize: 9 }}>Sugerencias</span>
-        </div>
-
-        <div className="col" style={{ gap: 8 }}>
-          {([
-            ["Sermón sobre la fe que vence el temor", "Expositivo · 25 min", "IcSpark"],
-            ["Reflexión sobre el Salmo 23", "Devocional · 10 min", "IcBook"],
-            ["Clase sobre la oración", "Clase · 45 min", "IcCross"],
-          ] as [string, string, string][]).map(([t, s, ic], i) => {
-            const I = ICONS[ic] || IcSpark;
-            return (
-              <div key={i} style={{
-                display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 10,
-                padding: "10px 12px",
-                background: "var(--paper-2)",
-                border: "1px solid var(--line)",
-                borderRadius: 14, alignItems: "center",
-              }}>
-                <div style={{
-                  width: 30, height: 30, borderRadius: 8,
-                  background: "color-mix(in oklab, var(--accent) 10%, transparent)",
-                  color: "var(--accent)",
-                  display: "grid", placeItems: "center",
-                }}><I size={14} /></div>
-                <div>
-                  <div className="serif" style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.25 }}>{t}</div>
-                  <div className="ui muted" style={{ fontSize: 10.5 }}>{s}</div>
-                </div>
-                <IcChevron size={14} className="muted" />
+        {fullscreen && messages.length > 0 ? (
+          <div className="col" style={{ gap: 12 }}>
+            {messages.map((m) => (
+              <div key={m.id} className={"bubble " + (m.role === "user" ? "bubble-user" : "bubble-ai")}
+                style={{ fontSize: 14, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
+                {m.text}
               </div>
-            );
-          })}
-        </div>
-
-        <div className="rule-fancy" style={{ margin: "20px 0 12px" }}>
-          <span className="eyebrow" style={{ fontSize: 9 }}>Recientes</span>
-        </div>
-
-        <div className="col" style={{ gap: 8 }}>
-          {SAVED.slice(0, 2).map((s) => (
-            <div key={s.id} style={{
-              padding: "12px 14px",
-              border: "1px solid var(--line)",
-              borderRadius: 14,
-              background: "var(--paper)",
-            }}>
-              <div className="row" style={{ gap: 8, marginBottom: 4 }}>
-                <TypePill type={s.type} />
-                <span className="ui muted" style={{ fontSize: 10 }}>· {s.scripture}</span>
+            ))}
+            {sending && (
+              <div className="bubble bubble-ai" style={{ display: "inline-flex", alignItems: "center", gap: 6, maxWidth: 80 }}>
+                <span className="typing"><span /><span /><span /></span>
               </div>
-              <div className="display" style={{ fontSize: 16, lineHeight: 1.2 }}>{s.title}</div>
-              <p className="serif muted" style={{ fontSize: 12, marginTop: 4, fontStyle: "italic" }}>
-                “{s.excerpt.slice(0, 80)}…”
-              </p>
+            )}
+            <div ref={endRef} />
+          </div>
+        ) : (
+          <>
+            <span className="pill" style={{ fontSize: 9, padding: "2px 8px" }}>· Semana 21</span>
+            <h1 className="display" style={{ fontSize: 28, lineHeight: 1.05, marginTop: 8, fontWeight: 500 }}>
+              Buenas tardes,<br />
+              <span style={{ color: "var(--accent)", fontStyle: "italic" }}>Gamaliel.</span>
+            </h1>
+            <p className="serif muted" style={{ fontSize: 13, marginTop: 6, marginBottom: 18 }}>
+              Empieza con una idea, una cita o elige una sugerencia.
+            </p>
+
+            <div className="rule-fancy" style={{ margin: "10px 0 12px" }}>
+              <span className="eyebrow" style={{ fontSize: 9 }}>Sugerencias</span>
             </div>
-          ))}
-        </div>
+
+            <div className="col" style={{ gap: 8 }}>
+              {([
+                ["Sermón sobre la fe que vence el temor", "Expositivo · 25 min", "IcSpark"],
+                ["Reflexión sobre el Salmo 23", "Devocional · 10 min", "IcBook"],
+                ["Clase sobre la oración", "Clase · 45 min", "IcCross"],
+              ] as [string, string, string][]).map(([t, s, ic], i) => {
+                const I = ICONS[ic] || IcSpark;
+                return (
+                  <button type="button" key={i} onClick={() => fullscreen && send(t)} style={{
+                    display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 10,
+                    padding: "10px 12px",
+                    background: "var(--paper-2)",
+                    border: "1px solid var(--line)",
+                    borderRadius: 14, alignItems: "center",
+                    cursor: fullscreen ? "pointer" : "default",
+                    textAlign: "left",
+                  }}>
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 8,
+                      background: "color-mix(in oklab, var(--accent) 10%, transparent)",
+                      color: "var(--accent)",
+                      display: "grid", placeItems: "center",
+                    }}><I size={14} /></div>
+                    <div>
+                      <div className="serif" style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.25 }}>{t}</div>
+                      <div className="ui muted" style={{ fontSize: 10.5 }}>{s}</div>
+                    </div>
+                    <IcChevron size={14} className="muted" />
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="rule-fancy" style={{ margin: "20px 0 12px" }}>
+              <span className="eyebrow" style={{ fontSize: 9 }}>Recientes</span>
+            </div>
+
+            <div className="col" style={{ gap: 8 }}>
+              {SAVED.slice(0, 2).map((s) => (
+                <div key={s.id} style={{
+                  padding: "12px 14px",
+                  border: "1px solid var(--line)",
+                  borderRadius: 14,
+                  background: "var(--paper)",
+                }}>
+                  <div className="row" style={{ gap: 8, marginBottom: 4 }}>
+                    <TypePill type={s.type} />
+                    <span className="ui muted" style={{ fontSize: 10 }}>· {s.scripture}</span>
+                  </div>
+                  <div className="display" style={{ fontSize: 16, lineHeight: 1.2 }}>{s.title}</div>
+                  <p className="serif muted" style={{ fontSize: 12, marginTop: 4, fontStyle: "italic" }}>
+                    "{s.excerpt.slice(0, 80)}…"
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{
@@ -222,15 +268,37 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
           display: "flex", alignItems: "center", gap: 8,
         }}>
           <IcAttach size={16} className="muted" />
-          <span className="serif muted" style={{ fontSize: 14, fontStyle: "italic", flex: 1 }}>
-            Pregunta o pide un sermón…
-          </span>
-          <div style={{
-            width: 30, height: 30, borderRadius: "50%",
-            background: "var(--accent)",
-            display: "grid", placeItems: "center",
-            color: "#fff",
-          }}><IcMic size={14} /></div>
+          {fullscreen ? (
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
+              placeholder="Pregunta o pide un sermón…"
+              style={{
+                flex: 1, background: "transparent", border: "none", outline: "none",
+                fontFamily: "var(--font-body)", fontSize: 14, color: "var(--ink)",
+                fontStyle: "italic",
+              }}
+            />
+          ) : (
+            <span className="serif muted" style={{ fontSize: 14, fontStyle: "italic", flex: 1 }}>
+              Pregunta o pide un sermón…
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => fullscreen ? send() : undefined}
+            disabled={fullscreen ? (!input.trim() || sending) : false}
+            style={{
+              width: 30, height: 30, borderRadius: "50%",
+              background: fullscreen && input.trim() && !sending ? "var(--accent)" : fullscreen ? "var(--ink-4)" : "var(--accent)",
+              display: "grid", placeItems: "center",
+              color: "#fff", border: "none", cursor: "pointer",
+              transition: "background .15s",
+            }}
+          >
+            {fullscreen && input.trim() ? <IcArrowUp size={14} /> : <IcMic size={14} />}
+          </button>
         </div>
 
         {!fullscreen && (
@@ -390,7 +458,7 @@ export function IOSBiblio({ fullscreen = false }: { fullscreen?: boolean } = {})
               </div>
               <div className="display" style={{ fontSize: 16.5, lineHeight: 1.15, fontWeight: 500 }}>{s.title}</div>
               <p className="serif muted" style={{ fontSize: 12, marginTop: 4, fontStyle: "italic", lineHeight: 1.4 }}>
-                “{s.excerpt.slice(0, 72)}…”
+                "{s.excerpt.slice(0, 72)}…"
               </p>
               <div className="row" style={{ marginTop: 8, justifyContent: "space-between" }}>
                 <span className="ui muted" style={{ fontSize: 10.5 }}>{s.duration} · {s.method.split(" · ")[0]}</span>
@@ -463,7 +531,7 @@ export function IOSSerie({ fullscreen: _fullscreen = false }: { fullscreen?: boo
 
         <div style={{ padding: "0 20px" }}>
           <p className="serif" style={{ fontSize: 15, fontStyle: "italic", color: "var(--ink-2)", lineHeight: 1.5 }}>
-            “Una serie sobre los gestos del corazón que reciben el reino. Cada parte es una bienaventuranza encarnada.”
+            "Una serie sobre los gestos del corazón que reciben el reino. Cada parte es una bienaventuranza encarnada."
           </p>
 
           <div className="row" style={{ gap: 4, marginTop: 14 }}>
@@ -818,7 +886,7 @@ function AndroidSerie() {
         </div>
 
         <p className="serif" style={{ fontSize: 14.5, fontStyle: "italic", color: "var(--ink-2)", marginTop: 14, lineHeight: 1.5 }}>
-          “Cada parte es una bienaventuranza encarnada en la vida cotidiana.”
+          "Cada parte es una bienaventuranza encarnada en la vida cotidiana."
         </p>
 
         <div className="eyebrow" style={{ marginTop: 18, marginBottom: 8, fontSize: 9 }}>Partes</div>

@@ -16,6 +16,11 @@ import { LoginScreen } from "./screen-login";
 import { PresenterScreen } from "./screen-presenter";
 import { PrintScreen } from "./screen-print";
 import { MobileShell } from "./mobile-shell";
+import { PerfilScreen } from "./screen-perfil";
+import { PlanesScreen } from "./screen-planes";
+import { getProfile } from "@/lib/profile";
+import { supabase } from "@/lib/supabase";
+import type { Profile } from "@/lib/types";
 
 export default function App() {
   const isMobile = useIsMobile();
@@ -26,6 +31,7 @@ export default function App() {
   const [loginOpen, setLoginOpen] = React.useState(false);
   const [presenterOpen, setPresenterOpen] = React.useState(false);
   const [printOpen, setPrintOpen] = React.useState(false);
+  const [profile, setProfile] = React.useState<Profile | null>(null);
 
   React.useEffect(() => {
     document.documentElement.dataset.palette = "capilla";
@@ -33,6 +39,18 @@ export default function App() {
     document.documentElement.style.setProperty("--font-body", '"Newsreader", Georgia, serif');
     document.documentElement.style.setProperty("--font-ui", '"Geist", ui-sans-serif, system-ui, sans-serif');
     document.body.style.fontSize = "15px";
+  }, []);
+
+  React.useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const p = await getProfile();
+      if (p) {
+        setProfile(p);
+        if (!p.onboarded) setOnboardingOpen(true);
+      }
+    })();
   }, []);
 
   React.useEffect(() => {
@@ -68,6 +86,7 @@ export default function App() {
         conversations={CONVERSATIONS}
         activeConv={activeConv}
         setActiveConv={setActiveConv}
+        profile={profile}
       />
       {screen === "estudio" && <EstudioScreen onOpenSermon={() => setScreen("sermon")} onOpenFilters={() => setFiltersOpen(true)} />}
       {screen === "biblioteca" && <BibliotecaScreen onOpenSermon={() => setScreen("sermon")} />}
@@ -76,6 +95,8 @@ export default function App() {
       {screen === "planificador" && <PlanificadorScreen />}
       {screen === "movil" && <MovilScreen />}
       {screen === "marca" && <MarcaScreen />}
+      {screen === "perfil" && <PerfilScreen onBack={() => setScreen("estudio")} onProfileSaved={setProfile} />}
+      {screen === "planes" && <PlanesScreen profile={profile} />}
 
       <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} />
       <OnboardingModal open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />

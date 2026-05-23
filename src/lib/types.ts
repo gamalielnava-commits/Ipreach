@@ -56,6 +56,8 @@ export interface ProfileDefaults {
   bibleVersion?: string;
 }
 
+export type SubscriptionStatus = "free" | "pro" | "canceled";
+
 export interface Profile {
   id: string;
   displayName: string;
@@ -66,6 +68,9 @@ export interface Profile {
   churchContext: string;
   defaults: ProfileDefaults;
   onboarded: boolean;
+  stripeCustomerId?: string;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionEndsAt?: string;
 }
 
 export interface Conversation {

@@ -62,6 +62,8 @@ export interface Profile {
   role: string;
   country: string;
   framework: string;
+  churchName: string;
+  churchContext: string;
   defaults: ProfileDefaults;
   onboarded: boolean;
 }

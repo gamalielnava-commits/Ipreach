@@ -7,6 +7,8 @@ interface Row {
   role: string;
   country: string;
   framework: string;
+  church_name: string;
+  church_context: string;
   defaults: ProfileDefaults;
   onboarded: boolean;
 }
@@ -18,6 +20,8 @@ function toProfile(r: Row): Profile {
     role: r.role,
     country: r.country,
     framework: r.framework,
+    churchName: r.church_name ?? "",
+    churchContext: r.church_context ?? "",
     defaults: r.defaults ?? {},
     onboarded: r.onboarded,
   };
@@ -44,6 +48,8 @@ export async function saveProfile(profile: Omit<Profile, "id">): Promise<void> {
     role: profile.role,
     country: profile.country,
     framework: profile.framework,
+    church_name: profile.churchName,
+    church_context: profile.churchContext,
     defaults: profile.defaults,
     onboarded: profile.onboarded,
     updated_at: new Date().toISOString(),

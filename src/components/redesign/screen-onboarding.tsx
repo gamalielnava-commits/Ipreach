@@ -7,7 +7,7 @@ export function OnboardingModal({ open, onClose }: { open: boolean; onClose: () 
   const [step, setStep] = React.useState(0);
   const [name, setName] = React.useState("");
   const [role, setRole] = React.useState("");
-  const [framework, setFramework] = React.useState("");
+  const [framework, setFramework] = React.useState("Asambleas de Dios");
   const [country, setCountry] = React.useState("");
   const [sermonType, setSermonType] = React.useState("Expositivo");
   const [method, setMethod] = React.useState("PEICA");

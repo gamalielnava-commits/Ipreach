@@ -57,14 +57,9 @@ export function MobileShell({
         {screen === "estudio" && <IOSEstudio fullscreen />}
         {screen === "sermon" && <IOSSermon fullscreen />}
         {screen === "series" && <IOSSerie fullscreen />}
-        {(screen === "biblioteca" || screen === "planificador" || screen === "movil" || screen === "marca") && (
+        {(screen === "biblioteca" || screen === "planificador") && (
           <MobilePlaceholder
-            title={
-              screen === "biblioteca" ? "Biblioteca"
-                : screen === "planificador" ? "Planificador"
-                  : screen === "movil" ? "Móvil"
-                    : "Marca"
-            }
+            title={screen === "biblioteca" ? "Biblioteca" : "Planificador"}
             subtitle="Disponible próximamente en la versión móvil"
           />
         )}

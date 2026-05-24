@@ -1,7 +1,8 @@
 import React from "react";
 import { getSermon, saveSermon } from "@/lib/store";
-import { exportWord, exportPptx } from "@/lib/export";
-import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
+import { getProfile } from "@/lib/profile";
+import { exportWord, exportPptx, type ExportOptions } from "@/lib/export";
+import type { Sermon, SlideDeck, SlideDensity, Profile } from "@/lib/types";
 import { SERMON_SAMPLE, OUTLINE_SAMPLE, SLIDE_STYLES, VERSE_PREVIEW, PHRASES_SAMPLE } from "./data";
 import { TypePill, SectionHead } from "./shared";
 import {
@@ -25,6 +26,17 @@ export function SermonScreen({
   const [saving, setSaving] = React.useState(false);
   const [tab, setTab] = React.useState("texto");
   const [generatingOutline, setGeneratingOutline] = React.useState(false);
+  const [profile, setProfile] = React.useState<Profile | null>(null);
+
+  React.useEffect(() => {
+    getProfile().then(setProfile).catch(() => {});
+  }, []);
+
+  const exportOpts = React.useMemo<ExportOptions>(() => ({
+    logoUrl: profile?.defaults?.churchLogoUrl,
+    includeLogo: profile?.defaults?.includeLogoInExports ?? true,
+    churchName: profile?.churchName,
+  }), [profile]);
 
   React.useEffect(() => {
     if (!sermonId) return;
@@ -155,7 +167,7 @@ export function SermonScreen({
           <span className="spacer" />
           <div className="row" style={{ gap: 6 }}>
             <button className="btn btn-ghost btn-sm" onClick={handleRegenerateSermon}><IcRefresh size={14} /> Regenerar</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => exportWord(sermon)}><IcDownload size={14} /> Word</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => exportWord(sermon, exportOpts)}><IcDownload size={14} /> Word</button>
             <button className="btn btn-ghost btn-sm" onClick={onPrint}><IcDownload size={14} /> PDF</button>
             <button className="btn btn-accent btn-sm" onClick={onPresent}><IcEye size={14} /> Presentar</button>
             <button className="btn-icon" onClick={onOpenFilters} title="Filtros del sermón"><IcSliders size={16} /></button>
@@ -194,7 +206,7 @@ export function SermonScreen({
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
           {tab === "texto" && <TextoTab sermon={sermon} onChange={(txt) => setSermon({ ...sermon, sermonText: txt })} />}
           {tab === "bosquejo" && <BosquejoTab sermon={sermon} onChange={(txt) => setSermon({ ...sermon, outlineText: txt })} onRegenerate={handleGenerateOutline} generating={generatingOutline} />}
-          {tab === "diapositivas" && <DiapositivasTab sermon={sermon} setSermon={setSermon} />}
+          {tab === "diapositivas" && <DiapositivasTab sermon={sermon} setSermon={setSermon} exportOpts={exportOpts} />}
           {tab === "imagenes" && <ImagenesTab sermon={sermon} setSermon={setSermon} />}
           {tab === "biblia" && <BibliaTab sermon={sermon} setSermon={setSermon} />}
         </div>
@@ -401,9 +413,11 @@ function BosquejoTab({
 function DiapositivasTab({
   sermon,
   setSermon,
+  exportOpts,
 }: {
   sermon: Sermon;
   setSermon: React.Dispatch<React.SetStateAction<Sermon | null>>;
+  exportOpts: ExportOptions;
 }) {
   const [style, setStyle] = React.useState("hillsong");
   const [density, setDensity] = React.useState("mediana");
@@ -526,7 +540,7 @@ function DiapositivasTab({
           </h3>
           {slides.length > 0 && (
             <div className="row" style={{ gap: 6 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => exportPptx(sermon, activeDeck!)}><IcDownload size={14} /> .pptx</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => exportPptx(sermon, activeDeck!, exportOpts)}><IcDownload size={14} /> .pptx</button>
             </div>
           )}
         </div>

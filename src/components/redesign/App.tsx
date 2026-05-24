@@ -8,19 +8,18 @@ import { BibliotecaScreen } from "./screen-biblioteca";
 import { SermonScreen } from "./screen-sermon";
 import { SeriesScreen } from "./screen-series";
 import { PlanificadorScreen } from "./screen-planificador";
-import { MovilScreen } from "./screen-movil";
-import { MarcaScreen } from "./screen-marca";
 import { FiltersRail } from "./screen-filtros";
 import { OnboardingModal } from "./screen-onboarding";
 import { LoginScreen } from "./screen-login";
 import { PresenterScreen } from "./screen-presenter";
 import { PrintScreen } from "./screen-print";
 import { MobileShell } from "./mobile-shell";
-import { PerfilScreen } from "./screen-perfil";
+import { PerfilScreen, applyAppearance } from "./screen-perfil";
 import { PlanesScreen } from "./screen-planes";
 import { getProfile } from "@/lib/profile";
+import { getSermon } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
-import type { Profile } from "@/lib/types";
+import type { Profile, Sermon } from "@/lib/types";
 import type { SermonConfig } from "@/lib/types";
 import { listConversations } from "@/lib/chat";
 
@@ -36,6 +35,7 @@ export default function App() {
   const [profile, setProfile] = React.useState<Profile | null>(null);
   
   const [activeSermonId, setActiveSermonId] = React.useState<string | null>(null);
+  const [presenterSermon, setPresenterSermon] = React.useState<Sermon | null>(null);
   const [conversations, setConversations] = React.useState<any[]>([]);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [config, setConfig] = React.useState<SermonConfig>({
@@ -89,6 +89,7 @@ export default function App() {
         const p = await getProfile();
         if (p) {
           setProfile(p);
+          applyAppearance(p.defaults?.appearance?.fontFamily, p.defaults?.appearance?.fontSize);
           if (!p.onboarded) setOnboardingOpen(true);
         } else {
           setOnboardingOpen(true);
@@ -101,6 +102,21 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  async function openPresenter() {
+    if (activeSermonId) {
+      try {
+        const s = await getSermon(activeSermonId);
+        setPresenterSermon(s);
+      } catch (err) {
+        console.error("Error cargando sermon para presentador:", err);
+        setPresenterSermon(null);
+      }
+    } else {
+      setPresenterSermon(null);
+    }
+    setPresenterOpen(true);
+  }
 
   React.useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -175,21 +191,25 @@ export default function App() {
         <SermonScreen
           sermonId={activeSermonId}
           onOpenFilters={() => setFiltersOpen(true)}
-          onPresent={() => setPresenterOpen(true)}
+          onPresent={openPresenter}
           onPrint={() => setPrintOpen(true)}
         />
       )}
       {screen === "series" && <SeriesScreen onOpenSermon={() => setScreen("sermon")} />}
       {screen === "planificador" && <PlanificadorScreen />}
-      {screen === "movil" && <MovilScreen />}
-      {screen === "marca" && <MarcaScreen />}
-      {screen === "perfil" && <PerfilScreen onBack={() => setScreen("estudio")} onProfileSaved={setProfile} />}
+      {screen === "perfil" && (
+        <PerfilScreen
+          onBack={() => setScreen("estudio")}
+          onProfileSaved={setProfile}
+          onOpenPlanes={() => setScreen("planes")}
+        />
+      )}
       {screen === "planes" && <PlanesScreen profile={profile} />}
 
       <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} config={config} setConfig={setConfig} />
       <OnboardingModal open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
       {loginOpen && <LoginScreen onSignIn={() => setLoginOpen(false)} />}
-      {presenterOpen && <PresenterScreen onClose={() => setPresenterOpen(false)} />}
+      {presenterOpen && <PresenterScreen sermon={presenterSermon} onClose={() => setPresenterOpen(false)} />}
       {printOpen && <PrintScreen onClose={() => setPrintOpen(false)} />}
     </div>
   );

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import BottomNav from "@/components/BottomNav";
 import { contentTypes } from "@/lib/catalogs";
 import { deleteSermon, listSermons } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
@@ -105,7 +104,6 @@ export default function SermonesPage() {
         </ul>
       )}
     </div>
-    <BottomNav />
     </>
   );
 }

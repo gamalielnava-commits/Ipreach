@@ -21,10 +21,16 @@ export interface CatalogItem {
 export interface Method extends CatalogItem {
   author?: string;
   steps: string[];
+  homileticGuide?: string;
 }
 
 export interface Strategy extends CatalogItem {
   author?: string;
+  homileticGuide?: string;
+}
+
+export interface SermonType extends CatalogItem {
+  homileticGuide?: string;
 }
 
 export interface Theme {
@@ -541,15 +547,63 @@ export const occasions: CatalogItem[] = [
 // 5. TIPOS DE SERMON
 // ---------------------------------------------------------------------------
 
-export const sermonTypes: CatalogItem[] = [
-  { slug: "expositivo", name: "Expositivo", description: "El pasaje biblico gobierna la estructura y el contenido." },
-  { slug: "textual", name: "Textual", description: "Un texto breve cuyas partes forman las divisiones del sermon." },
-  { slug: "tematico", name: "Tematico / Topico", description: "Un tema desarrollado con textos de distintos lugares." },
-  { slug: "narrativo", name: "Narrativo", description: "Comunica la verdad a traves de una historia y trama." },
-  { slug: "biografico", name: "Biografico", description: "Estudia la vida de un personaje biblico." },
-  { slug: "doctrinal", name: "Doctrinal", description: "Explica y aplica una verdad doctrinal." },
-  { slug: "devocional", name: "Devocional / Inspiracional", description: "Edifica y anima la vida espiritual." },
-  { slug: "evangelistico", name: "Evangelistico", description: "Presenta el evangelio con llamado a la salvacion." },
+export const sermonTypes: SermonType[] = [
+  {
+    slug: "expositivo",
+    name: "Expositivo",
+    description: "El pasaje biblico gobierna la estructura y el contenido.",
+    homileticGuide:
+      "La estructura del pasaje gobierna la estructura del sermon. Cada division del sermon debe corresponder a una unidad logica del texto (parrafo, peric0pa, estrofa). Identifica primero la idea exegetica (lo que el autor inspirado quiso decir a su audiencia original, en su genero literario y contexto historico) y luego conviertela en la idea homiletica (lo que demanda hoy). Cita el pasaje secuencialmente; no saltes a otros textos salvo para clarificar el sentido del pasaje base. Mantente fiel al genero (narrativo, profetico, sapiencial, epistolar, apocaliptico).",
+  },
+  {
+    slug: "textual",
+    name: "Textual",
+    description: "Un texto breve cuyas partes forman las divisiones del sermon.",
+    homileticGuide:
+      "Toma un texto breve (1-3 versiculos) y desarrolla sus partes naturales como divisiones del sermon. Respeta la unidad gramatical y logica del texto; no fuerces tres puntos donde el texto solo da dos. Cada division debe brotar del texto, no de un esquema retorico impuesto.",
+  },
+  {
+    slug: "tematico",
+    name: "Tematico / Topico",
+    description: "Un tema desarrollado con textos de distintos lugares.",
+    homileticGuide:
+      "Un tema unifica varios pasajes. Selecciona 3 a 5 textos clave que aborden el tema desde angulos complementarios; respeta el contexto de cada uno. Evita el 'concordancismo' (apilar versiculos sin atender su contexto original). La estructura suele ser doctrinal (que es, por que importa, como se vive) o pastoral (problema, diagnostico biblico, respuesta del evangelio, aplicacion).",
+  },
+  {
+    slug: "narrativo",
+    name: "Narrativo",
+    description: "Comunica la verdad a traves de una historia y trama.",
+    homileticGuide:
+      "Cuenta la historia biblica reviviendo su tension dramatica. Estructura por escenas, no por puntos abstractos. Usa presente historico, dialogo, detalle sensorial. La verdad se descubre con el oyente, no se anuncia al inicio. La aplicacion emerge al final, integrada al cierre narrativo. Cuida no moralizar ni reducir la historia a una leccion plana.",
+  },
+  {
+    slug: "biografico",
+    name: "Biografico",
+    description: "Estudia la vida de un personaje biblico.",
+    homileticGuide:
+      "Estudia al personaje en su arco completo: trasfondo, llamado, crisis, fidelidad o fracaso, legado. Saca un patron teologico (como Dios obra en el o ella, como apunta a Cristo) mas que un moralismo ('imita su virtud'). Apoyate en los textos donde aparece el personaje, no en suposiciones psicologicas.",
+  },
+  {
+    slug: "doctrinal",
+    name: "Doctrinal",
+    description: "Explica y aplica una verdad doctrinal.",
+    homileticGuide:
+      "Define la doctrina con precision biblica usando varios textos clave, defiendela contra los errores comunes que la atacan o distorsionan, y termina con su efecto practico en la vida del creyente. Cuida el equilibrio: claridad academica + calor pastoral. No predicar la doctrina como tesis fria sino como verdad que da vida.",
+  },
+  {
+    slug: "devocional",
+    name: "Devocional / Inspiracional",
+    description: "Edifica y anima la vida espiritual.",
+    homileticGuide:
+      "Tono intimo, primera persona plural ('nosotros'). Una sola verdad meditada en profundidad, sin querer abarcar mucho. Predomina la imagen sobre el argumento, la oracion sobre la exposicion. Cierra con respuesta concreta y, si cabe, con oracion en voz alta.",
+  },
+  {
+    slug: "evangelistico",
+    name: "Evangelistico",
+    description: "Presenta el evangelio con llamado a la salvacion.",
+    homileticGuide:
+      "Asume oyentes sin fe. Tres movimientos clasicos: (1) condicion humana (pecado, vacio, separacion de Dios), (2) provision de Dios en Cristo (encarnacion, cruz, resurreccion), (3) respuesta requerida (fe y arrepentimiento). Lenguaje claro, sin jerga; ilustraciones cercanas. Llamado explicito al final con pasos concretos para responder.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -557,15 +611,78 @@ export const sermonTypes: CatalogItem[] = [
 // ---------------------------------------------------------------------------
 
 export const strategies: Strategy[] = [
-  { slug: "idea-central", name: "Idea central (Big Idea)", author: "Haddon Robinson", description: "Todo el sermon gira en torno a una sola idea dominante." },
-  { slug: "cristocentrica", name: "Cristocentrica / redentor-historica", author: "Bryan Chapell", description: "Conecta el texto con Cristo y la redencion (enfoque en la condicion caida)." },
-  { slug: "narrativa-lowry", name: "Predicacion narrativa (Lowry Loop)", author: "Eugene Lowry", description: "Estructura de trama: tension, complicacion, giro y resolucion." },
-  { slug: "cuatro-paginas", name: "Las Cuatro Paginas del sermon", author: "Paul Scott Wilson", description: "Problema en el texto y en el mundo, gracia en el texto y en el mundo." },
-  { slug: "movimientos-stanley", name: "Predicacion de movimientos / un punto", author: "Andy Stanley", description: "Un solo punto memorable: yo - nosotros - Dios - tu - nosotros." },
-  { slug: "puente-stott", name: "El puente entre dos mundos", author: "John Stott", description: "Tiende un puente entre el mundo del texto y el del oyente." },
-  { slug: "exposicion-narrativa", name: "Exposicion narrativa", author: "Calvin Miller", description: "Une el rigor expositivo con el arte de contar historias." },
-  { slug: "predicacion-inductiva", name: "Predicacion inductiva", author: "Fred Craddock", description: "Lleva al oyente de lo particular a la conclusion, descubriendola con el." },
-  { slug: "expositiva-contemporanea", name: "Predicacion expositiva contemporanea", author: "David Helm / Donald Sunukjian", description: "Exposicion fiel del texto comunicada con claridad para hoy." },
+  {
+    slug: "idea-central",
+    name: "Idea central (Big Idea)",
+    author: "Haddon Robinson",
+    description: "Todo el sermon gira en torno a una sola idea dominante.",
+    homileticGuide:
+      "Destila el texto en una sola oracion homiletica (sujeto + complemento: 'X es Y' o 'X hace Y'). Toda la estructura del sermon desarrolla, explica, prueba o aplica esa unica idea. Si un punto no sirve a la idea central, sobra. La idea debe ser memorable, biblica y aplicable.",
+  },
+  {
+    slug: "cristocentrica",
+    name: "Cristocentrica / redentor-historica",
+    author: "Bryan Chapell",
+    description: "Conecta el texto con Cristo y la redencion (enfoque en la condicion caida).",
+    homileticGuide:
+      "Identifica la 'Condicion Humana Caida' (FCF) que el texto aborda: que necesidad, brokenness o tendencia caida diagnostica el pasaje. Muestra como el texto la diagnostica y como Cristo y el evangelio la resuelven. La aplicacion debe estar motivada por la gracia, no por la culpa o el deber autonomo. Conecta el texto con el arco redentor de la Escritura, sin alegorias forzadas.",
+  },
+  {
+    slug: "narrativa-lowry",
+    name: "Predicacion narrativa (Lowry Loop)",
+    author: "Eugene Lowry",
+    description: "Estructura de trama: tension, complicacion, giro y resolucion.",
+    homileticGuide:
+      "Cinco etapas de trama: (1) Alterar el equilibrio (plantear la tension u 'oops'), (2) Analizar la discrepancia (el 'ugh'), (3) Revelar la clave del evangelio (el 'aha'), (4) Experimentar la solucion (el 'whee'), (5) Anticipar las consecuencias (el 'yeah'). No anticipes la resolucion: deja que el oyente la descubra contigo.",
+  },
+  {
+    slug: "cuatro-paginas",
+    name: "Las Cuatro Paginas del sermon",
+    author: "Paul Scott Wilson",
+    description: "Problema en el texto y en el mundo, gracia en el texto y en el mundo.",
+    homileticGuide:
+      "Cuatro movimientos balanceados, aproximadamente del mismo peso: (1) Problema en el texto biblico, (2) Problema en el mundo de hoy, (3) Accion de Dios / gracia en el texto, (4) Accion de Dios / gracia en el mundo de hoy. Las cuatro paginas se conectan tematicamente; no son cuatro sermones cortos.",
+  },
+  {
+    slug: "movimientos-stanley",
+    name: "Predicacion de movimientos / un punto",
+    author: "Andy Stanley",
+    description: "Un solo punto memorable: yo - nosotros - Dios - tu - nosotros.",
+    homileticGuide:
+      "Un solo punto memorable. Estructura ME-WE-GOD-YOU-WE: (1) ME: mi historia personal o tension, (2) WE: el dolor o pregunta comun, (3) GOD: lo que Dios dice en su Palabra, (4) YOU: que haras tu con esto, (5) WE: que pasaria si todos respondemos. Lenguaje conversacional, una sola gran verdad.",
+  },
+  {
+    slug: "puente-stott",
+    name: "El puente entre dos mundos",
+    author: "John Stott",
+    description: "Tiende un puente entre el mundo del texto y el del oyente.",
+    homileticGuide:
+      "Dos orillas: el mundo del texto (exegesis cuidadosa, contexto historico, cultural, literario) y el mundo del oyente (analisis cultural honesto, dolencias, preguntas, idolos contemporaneos). El sermon construye el puente entre ambas orillas: aplica la verdad antigua sin distorsionarla ni anacronizarla.",
+  },
+  {
+    slug: "exposicion-narrativa",
+    name: "Exposicion narrativa",
+    author: "Calvin Miller",
+    description: "Une el rigor expositivo con el arte de contar historias.",
+    homileticGuide:
+      "Rigor expositivo en el contenido (fidelidad al texto, exegesis solida) + arte narrativo en la entrega (imagenes, escenas, voz cercana). El sermon se siente como una historia que avanza, pero su contenido es exposicion fiel del pasaje.",
+  },
+  {
+    slug: "predicacion-inductiva",
+    name: "Predicacion inductiva",
+    author: "Fred Craddock",
+    description: "Lleva al oyente de lo particular a la conclusion, descubriendola con el.",
+    homileticGuide:
+      "Comienza con preguntas, experiencias o detalles concretos del oyente y conduce el descubrimiento hasta la verdad biblica. El oyente llega a la conclusion casi al mismo tiempo que el predicador. No anuncies la tesis al inicio: el sermon es un viaje compartido.",
+  },
+  {
+    slug: "expositiva-contemporanea",
+    name: "Predicacion expositiva contemporanea",
+    author: "David Helm / Donald Sunukjian",
+    description: "Exposicion fiel del texto comunicada con claridad para hoy.",
+    homileticGuide:
+      "Fidelidad textual rigurosa + claridad comunicativa contemporanea. Una idea principal extraida del texto, estructura nitida (introduccion + 2-4 puntos + conclusion), ilustraciones modernas y accesibles, lenguaje cercano sin sacrificar profundidad. Aplicacion concreta a la vida cotidiana del oyente actual.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -576,14 +693,17 @@ export const methods: Method[] = [
   {
     slug: "peica",
     name: "PEICA",
-    description: "Estructura cada punto del sermon en cinco pasos claros.",
+    description:
+      "Cinco pasos por cada division: Presentacion, Explicacion, Ilustracion, Conclusion y Aplicacion.",
     steps: [
-      "Presentacion: introduce el tema y el texto captando la atencion",
-      "Explicacion: exegesis de lo que el texto dice y significa",
-      "Ilustracion: ejemplos que iluminan la verdad",
-      "Conclusion: cierre del argumento del punto",
-      "Aplicacion: como vivir la verdad en la vida diaria",
+      "Presentacion: una frase-gancho clara que enuncia la verdad de ESTE punto (no del sermon completo). Debe entenderse al leerse en voz alta.",
+      "Explicacion: exegesis del texto que sostiene el punto. Aclara el sentido original (autor, audiencia, genero, contexto historico-cultural), define los terminos clave (griego/hebreo solo cuando ilumina). Resuelve '¿que dice y que significa el texto?'.",
+      "Ilustracion: una sola imagen, historia o analogia breve que hace visible la verdad explicada. Debe servir al punto (no ser el punto). Preferir vida cotidiana, historia, naturaleza o testimonio. Evitar lo forzado o moralizante.",
+      "Conclusion: cierre del argumento del punto. Reformula la verdad explicada e ilustrada en una frase memorable. Funciona como bisagra hacia la aplicacion (no es la conclusion del sermon entero).",
+      "Aplicacion: 2-3 acciones concretas, verificables y especificas al contexto del oyente (no genericas como 'orar mas'). Cada aplicacion responde '¿que hago el lunes a las 8 a.m. con esta verdad?'. Vinculada a la verdad explicada y motivada por la gracia.",
     ],
+    homileticGuide:
+      "PEICA = Presentacion, Explicacion, Ilustracion, Conclusion, Aplicacion. CADA division principal del sermon debe contener los cinco pasos en este orden exacto, con subtitulos visibles. No fusionar pasos ni saltarse ninguno. Es el metodo clasico del Instituto Biblico Pentecostal y muy usado en Asambleas de Dios y otras tradiciones hispanas; busca claridad pastoral, fidelidad biblica y aplicacion concreta a la vida del creyente.",
   },
   {
     slug: "idea-central-robinson",
@@ -783,6 +903,76 @@ export const slideStyles: SlideStyle[] = [
     promptBase:
       "Fotograma de pelicula, iluminacion dramatica, gradacion de color cinematografica, formato panoramico, atmosfera epica, grano sutil de film",
     example: "Estetica de cine, dramatica y de gran impacto visual.",
+  },
+  {
+    slug: "pergamino",
+    name: "Pergamino",
+    promptBase:
+      "Fondo de pergamino antiguo envejecido con textura de papiro y bordes quemados, tonos sepia calidos y marfil dorado, tipografia con serif clasica estilo codice medieval, ornamentos de capitulares y bordes manuscritos, sensacion de sabiduria ancestral y reverencia biblica, iluminacion suave de vela sobre papel antiguo",
+    example: "Estetica de manuscrito antiguo, calida y solemne, como un codice biblico iluminado.",
+  },
+  {
+    slug: "vitral",
+    name: "Vitral",
+    promptBase:
+      "Vitrales de catedral gotica con luz sagrada atravesando cristales de colores intensos, azul profundo y rojo rubi con destellos dorados, marcos de plomo entre paneles de vidrio translucido, figuras y patrones sacros geometricos, sensacion de solemnidad, trascendencia y belleza liturgica",
+    example: "Colores vibrantes de vitral sobre fondo oscuro, sagrado y majestuoso.",
+  },
+  {
+    slug: "brutalista",
+    name: "Brutalista",
+    promptBase:
+      "Estetica brutalista con fondo blanco crudo o gris concreto, tipografia sans-serif gigante y stark en negro puro, composicion asimetrica con bloques geometricos duros, textura de hormigon visto, minimalismo industrial con contraste extremo, sensacion de fuerza, conviccion y crudeza visual",
+    example: "Diseno industrial austero, tipografia cruda y directa sobre concreto blanco.",
+  },
+  {
+    slug: "acuarela",
+    name: "Acuarela",
+    promptBase:
+      "Fondo con manchas y lavados de acuarela en tonos pastel suaves —lavanda, rosa palido, turquesa y melocoton—, bordes difuminados y organicos, textura de papel prensado en frio, tipografia elegante serif sobre campos de color translucido, sensacion de ternura, suavidad y creatividad artistica",
+    example: "Manchas de acuarela suaves y organicas, delicadas y llenas de color sutil.",
+  },
+  {
+    slug: "neon",
+    name: "Neon",
+    promptBase:
+      "Fondo negro o azul oscuro profundo con luces de neon brillantes en cyan, magenta y rosa electrico, tipografia que brilla con efecto de tubo de neon y resplandor luminoso, estetica synthwave y retrowave, destellos y reflejos sobre superficies oscuras, sensacion de energia juvenil, modernidad y vibracion nocturna",
+    example: "Luces de neon vibrantes sobre fondo oscuro, energetico y juvenil.",
+  },
+  {
+    slug: "mosaico",
+    name: "Mosaico",
+    promptBase:
+      "Arte de mosaico bizantino con teselas doradas y lapislazuli, fondo de hoja de oro y pigmentos terrosos, patrones sacros geometricos y ornamentales, tipografia clasica con detalles ornamentados, sensacion de lo sagrado eterno, la riqueza artistica de las basilicas antiguas y la reverencia del arte devocional",
+    example: "Teselas doradas y patrones sacros bizantinos, lujoso y atemporal.",
+  },
+  {
+    slug: "editorial",
+    name: "Editorial",
+    promptBase:
+      "Diseno editorial tipo revista contemporanea, cuadricula limpia y estructurada, tipografia sans-serif moderna y jerarquizada, fondo blanco o crema con acentos de color coral y melocoton, uso de lineas finas y espacios generosos, sensacion de profesionalismo, claridad y sofisticacion grafica moderna",
+    example: "Layout limpio tipo revista, sofisticado y profesional con tipografia moderna.",
+  },
+  {
+    slug: "tipografico",
+    name: "Tipografico",
+    promptBase:
+      "Tipografia colosal como protagonista absoluta, letras gigantes en blanco sobre fondo negro o viceversa, composicion centrada en la palabra escrita, fuentes bold condensadas y de alto impacto, jerarquia tipografica extrema, sin imagenes —solo letras y espacio—, sensacion de peso, autoridad y declaracion profetica",
+    example: "Letras enormes en blanco y negro, impactantes y declarativas.",
+  },
+  {
+    slug: "selva",
+    name: "Selva",
+    promptBase:
+      "Escenario botanico de selva tropical iluminada por la luna, hojas de palma, monstera y helechos en verdes profundos y esmeralda, fondo oscuro con destellos de luz entre el follaje, tipografia color crema o dorada sobre la vegetacion, sensacion de misterio, vida abundante y la creacion de Dios en su esplendor natural",
+    example: "Follaje tropical denso sobre fondo oscuro, exuberante y misterioso.",
+  },
+  {
+    slug: "avivamiento",
+    name: "Avivamiento",
+    promptBase:
+      "Llamas de fuego de Pentecostes en tonos naranja intenso, ambar y rojo profundo, fondo oscuro rojo vino con particulas de brasa incandescente, tipografia blanca bold que resplandece contra las llamas, sensacion de poder del Espiritu Santo, pasion ardiente, consagracion y fuego divino que transforma",
+    example: "Llamas y fuego sagrado sobre fondo oscuro, apasionado y poderoso.",
   },
 ];
 

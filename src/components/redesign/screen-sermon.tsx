@@ -1,5 +1,6 @@
 import React from "react";
 import { getSermon, saveSermon } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import { exportWord, exportPptx } from "@/lib/export";
 import type { Sermon, SlideDeck, SlideDensity } from "@/lib/types";
 import { SERMON_SAMPLE, OUTLINE_SAMPLE, SLIDE_STYLES, VERSE_PREVIEW, PHRASES_SAMPLE } from "./data";
@@ -7,6 +8,7 @@ import { TypePill, SectionHead } from "./shared";
 import {
   IcType, IcOutline, IcSlide, IcImage, IcBook, IcSpark, IcRefresh, IcDownload,
   IcEye, IcSliders, IcMore, IcCopy, IcPlus, IcBookmark, IcSearch, IcChevron, IcShare,
+  IcCalendar, IcClose,
 } from "./icons";
 
 export function SermonScreen({
@@ -17,7 +19,7 @@ export function SermonScreen({
 }: {
   sermonId: string | null;
   onOpenFilters: () => void;
-  onPresent: () => void;
+  onPresent: (sermon: Sermon) => void;
   onPrint: () => void;
 }) {
   const [sermon, setSermon] = React.useState<Sermon | null>(null);
@@ -26,6 +28,15 @@ export function SermonScreen({
   const [tab, setTab] = React.useState("texto");
   const [generatingOutline, setGeneratingOutline] = React.useState(false);
   const isDirty = React.useRef(false);
+
+  const [scheduleModalOpen, setScheduleModalOpen] = React.useState(false);
+  const [scheduleDate, setScheduleDate] = React.useState("");
+  const [scheduleType, setScheduleType] = React.useState("sermon");
+  const [scheduling, setScheduling] = React.useState(false);
+
+  const [shareModalOpen, setShareModalOpen] = React.useState(false);
+  const [shareEmails, setShareEmails] = React.useState("");
+  const [sharePhone, setSharePhone] = React.useState("");
 
   React.useEffect(() => {
     if (!sermonId) return;
@@ -108,6 +119,46 @@ export function SermonScreen({
     }
   }
 
+  async function handleScheduleSermon() {
+    if (!sermon || !scheduleDate) return;
+    setScheduling(true);
+    try {
+      let success = false;
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth.user) {
+        const { error } = await supabase.from("schedule_events").insert({
+          user_id: auth.user.id,
+          title: sermon.title,
+          event_date: scheduleDate,
+          type: scheduleType,
+          description: sermon.config?.scripture || "",
+        });
+        if (!error) success = true;
+      }
+      
+      if (!success && typeof window !== "undefined") {
+        const local = localStorage.getItem("ipreach_schedule_events");
+        const list = local ? JSON.parse(local) : [];
+        list.push({
+          id: crypto.randomUUID(),
+          title: sermon.title,
+          event_date: scheduleDate,
+          type: scheduleType,
+          description: sermon.config?.scripture || "",
+        });
+        localStorage.setItem("ipreach_schedule_events", JSON.stringify(list));
+      }
+      
+      alert("¡Sermón programado con éxito!");
+      setScheduleModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      alert("Error al programar el sermón.");
+    } finally {
+      setScheduling(false);
+    }
+  }
+
   if (!sermonId) {
     return (
       <div className="main" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
@@ -162,11 +213,12 @@ export function SermonScreen({
           <span className="spacer" />
           <div className="row" style={{ gap: 6 }}>
             <button className="btn btn-ghost btn-sm" onClick={handleRegenerateSermon}><IcRefresh size={14} /> Regenerar</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setScheduleModalOpen(true)}><IcCalendar size={14} /> Programar</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShareModalOpen(true)}><IcShare size={14} /> Compartir</button>
             <button className="btn btn-ghost btn-sm" onClick={() => exportWord(sermon)}><IcDownload size={14} /> Word</button>
             <button className="btn btn-ghost btn-sm" onClick={onPrint}><IcDownload size={14} /> PDF</button>
-            <button className="btn btn-accent btn-sm" onClick={onPresent}><IcEye size={14} /> Presentar</button>
+            <button className="btn btn-accent btn-sm" onClick={() => onPresent(sermon)}><IcEye size={14} /> Presentar</button>
             <button className="btn-icon" onClick={onOpenFilters} title="Filtros del sermón"><IcSliders size={16} /></button>
-            <button className="btn-icon"><IcMore size={16} /></button>
           </div>
         </div>
         <h1 className="display" style={{ fontSize: 38, fontWeight: 400, letterSpacing: "-0.018em" }}>
@@ -206,6 +258,96 @@ export function SermonScreen({
           {tab === "biblia" && <BibliaTab sermon={sermon} setSermon={updateSermon} />}
         </div>
       </div>
+
+      {scheduleModalOpen && (
+        <>
+          <div onClick={() => setScheduleModalOpen(false)} style={{ position: "fixed", inset: 0, background: "color-mix(in oklab, var(--ink) 40%, transparent)", backdropFilter: "blur(2px)", zIndex: 90 }} />
+          <div style={{
+            position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+            width: "min(420px, 95vw)", zIndex: 100,
+            background: "var(--paper)", borderRadius: "var(--r-lg)",
+            boxShadow: "0 24px 64px color-mix(in oklab, var(--ink) 24%, transparent)",
+            padding: 24,
+            color: "var(--ink)"
+          }}>
+            <div className="row" style={{ marginBottom: 16 }}>
+              <h2 className="display" style={{ fontSize: 20, fontWeight: 500 }}>Programar en Calendario</h2>
+              <span className="spacer" />
+              <button type="button" className="btn-icon" onClick={() => setScheduleModalOpen(false)}><IcClose size={16} /></button>
+            </div>
+            <div className="col" style={{ gap: 14 }}>
+              <div>
+                <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Fecha de predicación</label>
+                <input type="date" className="field" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Tipo de evento</label>
+                <select className="field" value={scheduleType} onChange={(e) => setScheduleType(e.target.value)}>
+                  <option value="sermon">Sermón</option>
+                  <option value="devocional">Devocional</option>
+                  <option value="clase">Clase</option>
+                </select>
+              </div>
+            </div>
+            <div className="row" style={{ gap: 8, marginTop: 24 }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setScheduleModalOpen(false)}>Cancelar</button>
+              <span className="spacer" />
+              <button type="button" className="btn btn-accent" onClick={handleScheduleSermon} disabled={!scheduleDate || scheduling}>
+                {scheduling ? "Guardando..." : "Programar"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {shareModalOpen && (
+        <>
+          <div onClick={() => setShareModalOpen(false)} style={{ position: "fixed", inset: 0, background: "color-mix(in oklab, var(--ink) 40%, transparent)", backdropFilter: "blur(2px)", zIndex: 90 }} />
+          <div style={{
+            position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+            width: "min(460px, 95vw)", zIndex: 100,
+            background: "var(--paper)", borderRadius: "var(--r-lg)",
+            boxShadow: "0 24px 64px color-mix(in oklab, var(--ink) 24%, transparent)",
+            padding: 24,
+            color: "var(--ink)"
+          }}>
+            <div className="row" style={{ marginBottom: 16 }}>
+              <h2 className="display" style={{ fontSize: 20, fontWeight: 500 }}>Compartir contenido</h2>
+              <span className="spacer" />
+              <button type="button" className="btn-icon" onClick={() => setShareModalOpen(false)}><IcClose size={16} /></button>
+            </div>
+            <div className="col" style={{ gap: 16 }}>
+              <div>
+                <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Enviar por WhatsApp</label>
+                <div className="row" style={{ gap: 6 }}>
+                  <input type="tel" className="field" placeholder="Ej. +52 5512345678" value={sharePhone} onChange={(e) => setSharePhone(e.target.value)} style={{ flex: 1 }} />
+                  <button className="btn btn-accent" onClick={() => {
+                    const text = `*${sermon.title}*\n${sermon.config?.scripture ? `Pasaje: ${sermon.config.scripture}\n` : ""}\n${sermon.sermonText?.slice(0, 500)}...`;
+                    const url = `https://wa.me/${sharePhone.replace(/[\s+()-]/g, "")}?text=${encodeURIComponent(text)}`;
+                    window.open(url, "_blank");
+                  }}>Enviar WA</button>
+                </div>
+              </div>
+              
+              <div style={{ borderTop: "1px dashed var(--line)", margin: "12px 0" }} />
+
+              <div>
+                <label className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Enviar por Correo Electrónico</label>
+                <div className="row" style={{ gap: 6, marginBottom: 8 }}>
+                  <input type="text" className="field" placeholder="correo1@iglesia.org, correo2@..." value={shareEmails} onChange={(e) => setShareEmails(e.target.value)} style={{ flex: 1 }} />
+                  <button className="btn btn-accent" onClick={() => {
+                    const subject = sermon.title;
+                    const body = `${sermon.title}\n\n${sermon.config?.scripture ? `Pasaje: ${sermon.config.scripture}\n` : ""}\n\n${sermon.sermonText}`;
+                    const url = `mailto:${shareEmails}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.open(url, "_self");
+                  }}>Enviar Correo</button>
+                </div>
+                <p className="ui muted" style={{ fontSize: 11 }}>Ingresa correos separados por comas para enviar a varias personas.</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -416,17 +558,44 @@ function DiapositivasTab({
   const [density, setDensity] = React.useState("mediana");
   const [generating, setGenerating] = React.useState(false);
 
+  const cleanLine = (s: string) => {
+    return s
+      .replace(/\*\*/g, "")
+      .replace(/\*/g, "")
+      .replace(/`/g, "")
+      .replace(/^#+\s*/, "")
+      .replace(/^titulo:\s*/i, "")
+      .replace(/^título:\s*/i, "")
+      .replace(/^contenido:\s*/i, "")
+      .replace(/^texto:\s*/i, "")
+      .replace(/^[-*•]\s*/, "")
+      .replace(/^\d+\.\s*/, "")
+      .trim();
+  };
+
   const activeDeck = sermon.slideDecks?.[0];
   const slides = activeDeck
     ? activeDeck.text
-        .split(/^[ \t]*DIAPOSITIVA[^\n]*$/im)
+        .split(/^[ \t]*[*#_\s-]*DIAPOSITIVA[^\n]*$/im)
         .map((b) => b.trim())
         .filter(Boolean)
         .map((block) => {
           const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+          // Filter out image suggestions and meta lines
+          const filtered = lines.filter((l) => {
+            const low = l.toLowerCase();
+            return !low.startsWith("sugerencia de imagen") &&
+                   !low.startsWith("sugerencia visual") &&
+                   !low.startsWith("imagen:") &&
+                   !low.startsWith("fondo:") &&
+                   !low.startsWith("nota:") &&
+                   !low.startsWith("---");
+          });
+          const kind = cleanLine(filtered[0] || "Diapositiva");
+          const contentLines = filtered.slice(1).map(cleanLine).filter(Boolean);
           return {
-            kind: lines[0] || "Diapositiva",
-            big: lines.slice(1).join("\n"),
+            kind,
+            big: contentLines.join("\n"),
             sub: sermon.config.scripture || "",
           };
         })
@@ -539,21 +708,30 @@ function DiapositivasTab({
         </div>
         
         {slides.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px", border: "1px dashed var(--line)", borderRadius: "var(--r-md)", color: "var(--ink-3)" }}>
-            Haz clic en "Generar mazo" en la parte superior para crear diapositivas reales con Inteligencia Artificial.
+          <div style={{ textAlign: "center", padding: "48px 24px", border: "1px dashed var(--line)", borderRadius: "var(--r-md)", color: "var(--ink-3)" }}>
+            <IcSlide size={32} />
+            <p style={{ marginTop: 12, fontSize: 14 }}>Haz clic en &quot;Generar mazo&quot; para crear diapositivas profesionales con IA.</p>
+            <p style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>Se generarán entre 10 y 15 diapositivas cinemáticas basadas en tu sermón.</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-            {slides.map((d, i) => (
-              <div key={i} style={{ position: "relative" }}>
-                <div className={"slide-tile " + (SLIDE_STYLES.find((s) => s.slug === style)?.cls || "deck-hillsong")}
-                  style={{ aspectRatio: "16/9" }}>
-                  <small>{d.kind} · {String(i + 1).padStart(2, "0")}</small>
-                  <div style={{ fontSize: 14, fontWeight: 500, whiteSpace: "pre-wrap" }}>{d.big}</div>
-                  <div style={{ fontSize: 9.5, opacity: 0.7, marginTop: 4, letterSpacing: ".1em", textTransform: "uppercase" }}>{d.sub}</div>
+            {slides.map((d, i) => {
+              const tileClass = SLIDE_STYLES.find((s) => s.slug === (activeDeck?.style || style))?.cls
+                || SLIDE_STYLES.find((s) => s.slug === style)?.cls
+                || "deck-hillsong";
+              const truncBig = d.big.length > 120 ? d.big.slice(0, 120) + "…" : d.big;
+              const fontSize = d.big.length < 40 ? 14 : d.big.length < 80 ? 12 : 10;
+              return (
+                <div key={i} style={{ position: "relative" }}>
+                  <div className={"slide-tile " + tileClass}
+                    style={{ aspectRatio: "16/9", overflow: "hidden" }}>
+                    <small>{d.kind} · {String(i + 1).padStart(2, "0")}</small>
+                    <div style={{ fontSize, fontWeight: 500, whiteSpace: "pre-wrap", overflow: "hidden", lineHeight: 1.3 }}>{truncBig}</div>
+                    <div style={{ fontSize: 9.5, opacity: 0.7, marginTop: 4, letterSpacing: ".1em", textTransform: "uppercase" }}>{d.sub}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

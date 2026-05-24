@@ -2,7 +2,7 @@
 import React from "react";
 import { TopBar } from "./shell";
 import { SUGGESTIONS, SAVED } from "./data";
-import { ICONS, IcSpark, IcBook, IcBookmark, IcCross, IcChevron, IcSliders, IcUser, IcRefresh, IcCopy, IcShare, IcArrowUp, IcAttach, IcMic } from "./icons";
+import { ICONS, IcSpark, IcBook, IcBookmark, IcCross, IcChevron, IcSliders, IcUser, IcRefresh, IcCopy, IcShare, IcArrowUp, IcAttach, IcMic, IcClose } from "./icons";
 import type { SermonConfig, Profile } from "@/lib/types";
 import { listMessages, addMessage, createConversation } from "@/lib/chat";
 import { saveSermon, newId } from "@/lib/store";
@@ -31,6 +31,30 @@ export function EstudioScreen({
   const [sending, setSending] = React.useState(false);
   const [loadingMsg, setLoadingMsg] = React.useState(false);
   const endRef = React.useRef<HTMLDivElement>(null);
+  const [attachedFile, setAttachedFile] = React.useState<{ name: string; content: string } | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  function handleAttachClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext === "pdf" || ext === "docx" || ext === "doc") {
+      alert("Por el momento, solo se soportan formatos de texto plano (.txt, .md, .json).");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setAttachedFile({ name: file.name, content: content || "" });
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
 
   React.useEffect(() => {
     if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -53,17 +77,25 @@ export function EstudioScreen({
       }
     })();
   }, [activeConvId]);
-
   async function send(text?: string) {
     const t = (text ?? input).trim();
-    if (!t) return;
+    if (!t && !attachedFile) return;
 
     let currentConvId = activeConvId;
+    let promptToSend = t;
+    let dbContent = t;
+
+    if (attachedFile) {
+      promptToSend = `${t}\n\n[Archivo adjunto: ${attachedFile.name}]\nContenido del archivo:\n${attachedFile.content}`;
+      dbContent = t ? `${t} (Adjunto: ${attachedFile.name})` : `Adjuntó archivo: ${attachedFile.name}`;
+      setAttachedFile(null);
+    }
 
     if (!currentConvId) {
       try {
         setSending(true);
-        const newConv = await createConversation(t);
+        const convTitle = t || `Archivo: ${attachedFile?.name || "Conversación"}`;
+        const newConv = await createConversation(convTitle);
         currentConvId = newConv.id;
         setActiveConvId(newConv.id);
         onRefreshConvs();
@@ -75,20 +107,20 @@ export function EstudioScreen({
       }
     }
 
-    const userMsgLocal = { role: "user" as const, text: t, id: Date.now() };
+    const userMsgLocal = { role: "user" as const, text: dbContent, id: Date.now() };
     setMessages((m) => [...m, userMsgLocal]);
     setInput("");
     setSending(true);
 
     try {
-      await addMessage(currentConvId, "user", t);
+      await addMessage(currentConvId, "user", dbContent);
 
       const chatHistory = [
         ...messages.map((m) => ({
           role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
           content: m.text,
         })),
-        { role: "user" as const, content: t },
+        { role: "user" as const, content: promptToSend },
       ];
 
       const res = await fetch("/api/chat", {
@@ -120,7 +152,6 @@ export function EstudioScreen({
       setSending(false);
     }
   }
-
   async function handleOpenAsSermon() {
     setSending(true);
     try {
@@ -248,6 +279,16 @@ export function EstudioScreen({
         onSend={() => send()}
         disabled={sending}
         config={config}
+        attachedFile={attachedFile}
+        setAttachedFile={setAttachedFile}
+        onAttachClick={handleAttachClick}
+      />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: "none" }}
+        accept=".txt,.md,.pdf,.docx,.json"
       />
     </div>
   );
@@ -325,12 +366,24 @@ function EmptyState({ onPick, name }: { onPick: (text: string) => void; name?: s
   );
 }
 
-function Composer({ value, onChange, onSend, disabled, config }: {
+function Composer({
+  value,
+  onChange,
+  onSend,
+  disabled,
+  config,
+  attachedFile,
+  setAttachedFile,
+  onAttachClick,
+}: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
   disabled: boolean;
   config: SermonConfig;
+  attachedFile?: { name: string } | null;
+  setAttachedFile?: (f: null) => void;
+  onAttachClick?: () => void;
 }) {
   const ref = React.useRef<HTMLTextAreaElement>(null);
   React.useEffect(() => {
@@ -341,6 +394,27 @@ function Composer({ value, onChange, onSend, disabled, config }: {
 
   return (
     <div className="composer">
+      {attachedFile && (
+        <div className="row" style={{
+          background: "var(--paper-2)",
+          border: "1px solid var(--line)",
+          padding: "4px 8px",
+          borderRadius: "var(--r-md)",
+          margin: "0 16px 8px",
+          alignSelf: "flex-start",
+          gap: 6,
+          fontSize: 12.5,
+          color: "var(--ink-2)",
+        }}>
+          <IcAttach size={12} style={{ color: "var(--accent)" }} />
+          <span className="serif" style={{ fontStyle: "italic", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {attachedFile.name}
+          </span>
+          <button type="button" onClick={() => setAttachedFile?.(null)} style={{ padding: 1, color: "var(--ink-4)", cursor: "pointer", background: "none", border: "none" }}>
+            <IcClose size={12} />
+          </button>
+        </div>
+      )}
       <div className="composer-inner">
         <textarea
           ref={ref}
@@ -353,14 +427,14 @@ function Composer({ value, onChange, onSend, disabled, config }: {
           placeholder="Empieza con una idea, una cita o un pasaje…"
         />
         <div className="row" style={{ gap: 4, paddingBottom: 4 }}>
-          <button className="btn-icon" title="Adjuntar"><IcAttach size={16} /></button>
+          <button className="btn-icon" onClick={onAttachClick} title="Adjuntar"><IcAttach size={16} /></button>
           <button className="btn-icon" title="Pasaje bíblico"><IcBook size={16} /></button>
           <button className="btn-icon" title="Dictar"><IcMic size={16} /></button>
           <button
             className="btn btn-accent btn-sm"
             onClick={onSend}
-            disabled={disabled || !value.trim()}
-            style={{ padding: "8px 12px", opacity: disabled || !value.trim() ? 0.5 : 1 }}
+            disabled={disabled || (!value.trim() && !attachedFile)}
+            style={{ padding: "8px 12px", opacity: disabled || (!value.trim() && !attachedFile) ? 0.5 : 1 }}
             title="Enviar  ⌘↵">
             <IcArrowUp size={14} />
           </button>

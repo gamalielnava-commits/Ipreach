@@ -42,6 +42,11 @@ export interface Sermon {
   slideDecks: SlideDeck[];
 }
 
+export interface AppearancePrefs {
+  fontFamily?: string;
+  fontSize?: number;
+}
+
 export interface ProfileDefaults {
   themes?: string[];
   occasion?: string;
@@ -54,6 +59,9 @@ export interface ProfileDefaults {
   verseOption?: VerseOption;
   provider?: Provider;
   bibleVersion?: string;
+  appearance?: AppearancePrefs;
+  churchLogoUrl?: string;
+  includeLogoInExports?: boolean;
 }
 
 export type SubscriptionStatus = "free" | "pro" | "canceled";

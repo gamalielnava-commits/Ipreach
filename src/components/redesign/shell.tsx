@@ -1,9 +1,9 @@
 "use client";
 import React from "react";
-import { IcChat, IcBook, IcLibrary, IcPlus, IcSlide, IcCalendar, IcShare, IcStar, IcSettings, IcSpark } from "./icons";
+import { IcChat, IcBook, IcLibrary, IcPlus, IcSlide, IcCalendar, IcSettings, IcSpark } from "./icons";
 
 export type Screen =
-  | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "movil" | "marca" | "perfil" | "planes";
+  | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "perfil" | "planes";
 
 export function Wordmark() {
   return (
@@ -80,16 +80,6 @@ export function Sidebar({
           <IcCalendar size={16} /> Planificador
           <span className="spacer" />
           <span className="pill" style={{ fontSize: 9, padding: "2px 6px" }}>Dom</span>
-        </button>
-        <button className={"nav-item " + (screen === "movil" ? "active" : "")} onClick={() => go("movil")}>
-          <IcShare size={16} /> Móvil
-          <span className="spacer" />
-          <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>iOS · Android</span>
-        </button>
-        <button className={"nav-item " + (screen === "marca" ? "active" : "")} onClick={() => go("marca")}>
-          <IcStar size={16} /> Marca
-          <span className="spacer" />
-          <span className="pill" style={{ fontSize: 9, padding: "2px 6px" }}>Nuevo</span>
         </button>
         <button className={"nav-item " + (screen === "planes" ? "active" : "")} onClick={() => setScreen("planes")}>
           <IcSpark size={16} /> Planes

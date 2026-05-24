@@ -10,6 +10,23 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
   const [loading, setLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
 
+  async function handleGoogle() {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setErrorMsg(err.message || "No se pudo iniciar sesión con Google.");
+      setLoading(false);
+    }
+  }
+
   async function handleAuth() {
     if (!email || !pass) {
       setErrorMsg("Por favor, rellena todos los campos.");
@@ -113,7 +130,8 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
             {mode === "signin" ? "Tus conversaciones y sermones esperan." : "Configura tu perfil en menos de un minuto."}
           </p>
 
-          <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", padding: "12px" }}>
+          <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", padding: "12px" }}
+            onClick={handleGoogle} disabled={loading}>
             <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z" />
               <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 16 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
@@ -122,15 +140,6 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
             </svg>
             Continuar con Google
           </button>
-          <div className="row" style={{ gap: 8, marginTop: 8 }}>
-            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16.36 1.43c-.96.06-2.07.7-2.74 1.5-.6.74-1.1 1.84-.94 2.93 1.05.08 2.13-.57 2.78-1.36.65-.78 1.06-1.86.9-3.07zm3.42 19.31c-.94 1.39-1.92 2.78-3.46 2.81-1.52.03-2-.91-3.74-.91-1.74 0-2.27.88-3.7.94-1.5.06-2.62-1.5-3.58-2.88-1.94-2.83-3.43-7.99-1.43-11.47.97-1.7 2.73-2.78 4.62-2.81 1.45-.03 2.84.99 3.74.99.9 0 2.58-1.22 4.36-1.04.74.03 2.82.3 4.16 2.27-.11.07-2.48 1.46-2.45 4.34.03 3.43 3 4.58 3.05 4.6-.03.08-.49 1.65-1.57 3.16z" /></svg>
-              Apple
-            </button>
-            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }}>
-              Correo
-            </button>
-          </div>
 
           <div className="rule-fancy" style={{ margin: "22px 0 16px" }}>
             <span className="eyebrow">O con tu correo</span>

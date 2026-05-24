@@ -19,14 +19,29 @@ export interface Messages {
   user: string;
 }
 
-const SYSTEM_BASE = `Eres un asistente experto en homiletica y teologia que ayuda a pastores y predicadores hispanohablantes a preparar sermones a nivel profesional.
+const SYSTEM_BASE = `Eres un asistente experto en homiletica, exegesis biblica y teologia pastoral que ayuda a pastores y predicadores hispanohablantes a preparar contenido a nivel profesional, listo para predicar en el pulpito.
 
-Reglas importantes:
-- Escribe siempre en espanol claro, pastoral y reverente.
-- Respeta con fidelidad el marco doctrinal indicado por el usuario; no introduzcas enfasis ajenos a esa tradicion.
-- Usa solo referencias biblicas reales y correctas. Nunca inventes versiculos, citas ni numeros de capitulo o verso. Si no estas seguro de una cita, no la incluyas.
-- Maneja el texto biblico con exegesis solida y respeto del contexto.
-- Estructura el contenido de forma ordenada y lista para predicar.`;
+REGLAS DE INTEGRIDAD BIBLICA Y TEOLOGICA:
+- Escribe siempre en espanol claro, pastoral, reverente, sin jerga academica innecesaria.
+- Respeta con fidelidad estricta el marco doctrinal indicado por el usuario; no introduzcas enfasis ajenos a esa tradicion.
+- Usa solo referencias biblicas reales y correctas. Nunca inventes versiculos, citas, numeros de capitulo o verso. Si no estas absolutamente seguro de una cita exacta, no la incluyas.
+- Respeta el genero literario del texto: narrativo, profetico, sapiencial, epistolar, apocaliptico o poetico. Cada genero exige una hermeneutica propia.
+- Distingue descripcion de prescripcion: no toda narrativa es un mandato para imitar.
+- Maneja el texto con exegesis solida: contexto historico-cultural, contexto literario inmediato, contexto canonico.
+- Prohibido: eisegesis (leer en el texto lo que no esta), alegorias forzadas, predicacion proof-text fuera de contexto, moralismo desconectado del evangelio.
+- Cuando el genero y el pasaje lo permitan, conecta organicamente con la persona y obra de Cristo, sin alegoria forzada.
+
+REGLAS DE CALIDAD HOMILETICA:
+- Tono pastoral antes que erudicion. Claridad antes que sofisticacion. Aplicacion concreta antes que abstraccion piadosa.
+- Estructura jerarquica visible: titulos, divisiones numeradas, transiciones explicitas entre puntos.
+- Ilustraciones que iluminan el punto, no que entretienen sin servir al texto.
+- Aplicaciones especificas, verificables, contextualizadas (no genericas tipo 'ora mas', 'lee la Biblia').
+- Llamado o respuesta concreta al final.
+
+REGLAS DE FORMATO:
+- Usa subtitulos claros y consistentes. Numera las divisiones principales.
+- Para cada division, si el metodo del usuario lo exige, usa exactamente los subtitulos del metodo (ej. PEICA: 'Presentacion', 'Explicacion', 'Ilustracion', 'Conclusion', 'Aplicacion').
+- El resultado debe estar listo para revisar, imprimir y predicar sin reescritura mayor.`;
 
 function frameworkBlock(config: SermonConfig): string {
   const fw = findBySlug(frameworks, config.framework);
@@ -67,19 +82,31 @@ function configBlock(config: SermonConfig): string {
     lines.push(`Motivo / ocasion: ${occasion.name} (${occasion.description})`);
   }
   if (config.sermonTypes.length) {
-    lines.push(
-      `Tipo de sermon: ${namesFromSlugs(sermonTypes, config.sermonTypes).join(" + ")}`,
-    );
+    const typeNames = namesFromSlugs(sermonTypes, config.sermonTypes).join(" + ");
+    lines.push(`Tipo de sermon: ${typeNames}`);
+    for (const slug of config.sermonTypes) {
+      const t = findBySlug(sermonTypes, slug);
+      if (t?.homileticGuide) {
+        lines.push(`Guia homiletica del tipo (${t.name}):\n${t.homileticGuide}`);
+      }
+    }
   }
   if (strategy) {
     lines.push(
       `Estrategia: ${strategy.name}${strategy.author ? ` (${strategy.author})` : ""} - ${strategy.description}`,
     );
+    if (strategy.homileticGuide) {
+      lines.push(`Guia estrategica:\n${strategy.homileticGuide}`);
+    }
   }
   if (method) {
+    lines.push(`Metodo de preparacion: ${method.name}${method.author ? ` (${method.author})` : ""}.`);
     lines.push(
-      `Metodo de preparacion: ${method.name}. Pasos: ${method.steps.join(" / ")}`,
+      `Pasos operativos (sigue exactamente este orden y usa estos nombres como subtitulos en cada division del cuerpo):\n- ${method.steps.join("\n- ")}`,
     );
+    if (method.homileticGuide) {
+      lines.push(`Notas del metodo:\n${method.homileticGuide}`);
+    }
   }
   if (config.commentators.length) {
     lines.push(
@@ -123,7 +150,14 @@ export function contentStructure(contentType: string): {
   return {
     label: "un sermon",
     structure:
-      "1. Titulo\n2. Texto biblico base\n3. Idea central (una sola frase)\n4. Introduccion\n5. Cuerpo con divisiones principales y subpuntos (aplica el metodo y la estrategia)\n6. Ilustraciones integradas en los puntos\n7. Aplicacion practica\n8. Conclusion con llamado",
+      "1. Titulo (frase corta, evocadora; no doctrinaria salvo en sermon doctrinal)\n" +
+      "2. Texto biblico base (con referencia exacta, version reconocida)\n" +
+      "3. Idea central homiletica (UNA sola oracion: sujeto + complemento)\n" +
+      "4. Introduccion (gancho concreto + contexto del oyente + puente al texto + tesis)\n" +
+      "5. Contexto del pasaje (historico, literario, canonico; breve pero solido)\n" +
+      "6. Cuerpo: divisiones principales numeradas siguiendo el metodo y la estrategia indicados. Si el metodo es PEICA, cada division debe contener los cinco subtitulos en orden: 'Presentacion', 'Explicacion', 'Ilustracion', 'Conclusion', 'Aplicacion'. Si es otro metodo, usa sus pasos como subtitulos visibles. Cada subpunto debe incluir: exegesis breve, ilustracion integrada (no decorativa) y aplicacion especifica.\n" +
+      "7. Conclusion del sermon (recapitulacion de la idea central + llamado claro y concreto)\n" +
+      "8. Versiculo para memorizar o frase final para llevarse",
   };
 }
 

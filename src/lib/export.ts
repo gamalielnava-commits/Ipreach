@@ -2,6 +2,19 @@
 
 import type { Sermon, SlideDeck } from "./types";
 
+export interface ExportOptions {
+  logoUrl?: string;
+  includeLogo?: boolean;
+  churchName?: string;
+}
+
+function dataUrlToBase64(dataUrl: string): { data: string; ext: "png" | "jpeg" | "gif" } | null {
+  const m = dataUrl.match(/^data:image\/(png|jpeg|jpg|gif);base64,(.+)$/);
+  if (!m) return null;
+  const ext = (m[1] === "jpg" ? "jpeg" : m[1]) as "png" | "jpeg" | "gif";
+  return { data: m[2], ext };
+}
+
 function cleanInline(s: string): string {
   return s
     .replace(/\*\*/g, "")
@@ -33,8 +46,8 @@ function download(blob: Blob, name: string): void {
   URL.revokeObjectURL(url);
 }
 
-export async function exportWord(sermon: Sermon): Promise<void> {
-  const { Document, Packer, Paragraph, HeadingLevel } = await import("docx");
+export async function exportWord(sermon: Sermon, opts: ExportOptions = {}): Promise<void> {
+  const { Document, Packer, Paragraph, HeadingLevel, ImageRun, AlignmentType } = await import("docx");
 
   const toParagraphs = (text: string) => {
     const out: InstanceType<typeof Paragraph>[] = [];
@@ -72,9 +85,36 @@ export async function exportWord(sermon: Sermon): Promise<void> {
     return out;
   };
 
-  const children: InstanceType<typeof Paragraph>[] = [
-    new Paragraph({ text: sermon.title || "Sermon", heading: HeadingLevel.TITLE }),
-  ];
+  const children: InstanceType<typeof Paragraph>[] = [];
+
+  if (opts.includeLogo && opts.logoUrl) {
+    const parsed = dataUrlToBase64(opts.logoUrl);
+    if (parsed) {
+      try {
+        const bytes = Uint8Array.from(atob(parsed.data), (c) => c.charCodeAt(0));
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new ImageRun({
+                data: bytes,
+                transformation: { width: 100, height: 100 },
+                type: parsed.ext,
+              } as any),
+            ],
+          }),
+        );
+        if (opts.churchName) {
+          children.push(new Paragraph({ text: opts.churchName, alignment: AlignmentType.CENTER }));
+        }
+        children.push(new Paragraph({ text: "" }));
+      } catch (err) {
+        console.warn("No se pudo incrustar el logo en Word:", err);
+      }
+    }
+  }
+
+  children.push(new Paragraph({ text: sermon.title || "Sermon", heading: HeadingLevel.TITLE }));
   if (sermon.config.scripture) {
     children.push(new Paragraph({ text: sermon.config.scripture }));
   }
@@ -127,14 +167,19 @@ function themeFor(style: string): PptxTheme {
   return pptxThemes[style] ?? pptxThemes.realista;
 }
 
-export async function exportPptx(sermon: Sermon, deck: SlideDeck): Promise<void> {
+export async function exportPptx(sermon: Sermon, deck: SlideDeck, opts: ExportOptions = {}): Promise<void> {
   const pptxgen = (await import("pptxgenjs")).default;
   const pptx = new pptxgen();
   pptx.layout = "LAYOUT_WIDE";
   const theme = themeFor(deck.style);
 
+  const useLogo = !!(opts.includeLogo && opts.logoUrl);
+
   const cover = pptx.addSlide();
   cover.background = { color: theme.bg };
+  if (useLogo && opts.logoUrl) {
+    cover.addImage({ data: opts.logoUrl, x: 5.92, y: 0.55, w: 1.5, h: 1.5 });
+  }
   cover.addShape(pptx.ShapeType.rect, {
     x: 0,
     y: 3.05,
@@ -179,6 +224,9 @@ export async function exportPptx(sermon: Sermon, deck: SlideDeck): Promise<void>
     const body = lines.slice(1).map(cleanInline).join("\n");
     const slide = pptx.addSlide();
     slide.background = { color: theme.bg };
+    if (useLogo && opts.logoUrl) {
+      slide.addImage({ data: opts.logoUrl, x: 12.3, y: 0.3, w: 0.7, h: 0.7 });
+    }
     slide.addShape(pptx.ShapeType.rect, {
       x: 0.5,
       y: 1.32,

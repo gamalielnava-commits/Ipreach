@@ -1,12 +1,107 @@
 "use client";
 import React from "react";
 import { IcClose } from "./icons";
+import type { Sermon } from "@/lib/types";
 
-export function PresenterScreen({ onClose }: { onClose: () => void }) {
-  const [slide, setSlide] = React.useState(2);
-  const [elapsed, setElapsed] = React.useState(8 * 60 + 14);
+interface Slide {
+  kind: string;
+  big: string;
+  sub: string;
+}
+
+const FALLBACK_SLIDES: Slide[] = [
+  { kind: "Aviso", big: "Sin sermón\nseleccionado", sub: "Abre un sermón en la biblioteca y vuelve a presentar" },
+];
+
+function parseSlidesFromDeck(deckText: string): Slide[] {
+  const blocks = deckText
+    .split(/^[ \t]*DIAPOSITIVA[^\n]*$/im)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  if (!blocks.length) return [];
+  return blocks.map((block, i) => {
+    const titleMatch = block.match(/T[ií]tulo\s*:\s*(.+?)(?=\n|$)/i);
+    const contentMatch = block.match(/Contenido\s*:\s*([\s\S]*?)(?=\n\s*Sugerencia|\n\s*[A-ZÁÉÍÓÚ][a-záéíóú]+\s*:|$)/i);
+    const big = (titleMatch?.[1]?.trim()) || (contentMatch?.[1]?.split("\n")[0]?.trim()) || `Diapositiva ${i + 1}`;
+    const sub = (contentMatch?.[1]?.split("\n").slice(1).join(" ").trim().slice(0, 90)) || "";
+    return { kind: `Diapositiva ${i + 1}`, big, sub };
+  });
+}
+
+function parseSlidesFromSermonText(text: string, title: string, scripture: string): Slide[] {
+  if (!text.trim()) return [];
+  const slides: Slide[] = [];
+
+  if (title) slides.push({ kind: "Título", big: title, sub: scripture });
+
+  const ideaMatch = text.match(/idea\s+central[^\n:]*:\s*([^\n]+)/i);
+  if (ideaMatch) slides.push({ kind: "Idea central", big: ideaMatch[1].trim(), sub: "" });
+
+  const textoMatch = text.match(/(?:texto\s+b[ií]blico\s+base|texto\s+base)[^\n:]*:\s*([^\n]+)/i);
+  if (textoMatch) slides.push({ kind: "Texto base", big: textoMatch[1].trim(), sub: scripture });
+
+  const divisionRegex = /^\s*(?:divisi[oó]n|punto|i{1,3}v?|v?i{0,3})\s*([0-9ivx]+)?\s*[:.\-—]\s*(.+)$/gim;
+  const headingRegex = /^\s*(\d+)\.\s+(.{4,120})$/gm;
+  const matches = new Set<string>();
+
+  let m: RegExpExecArray | null;
+  while ((m = divisionRegex.exec(text))) {
+    const label = (m[0] || "").trim();
+    const title = (m[2] || "").trim();
+    if (title && !matches.has(title)) {
+      matches.add(title);
+      slides.push({ kind: label.split(":")[0].slice(0, 20), big: title, sub: "" });
+    }
+  }
+  if (matches.size === 0) {
+    while ((m = headingRegex.exec(text))) {
+      const title = (m[2] || "").trim();
+      if (title.length > 4 && title.length < 100 && !matches.has(title)) {
+        matches.add(title);
+        slides.push({ kind: `Punto ${m[1]}`, big: title, sub: "" });
+      }
+    }
+  }
+
+  const concMatch = text.match(/conclusi[oó]n[^\n:]*:?\s*([^\n]+)/i);
+  if (concMatch) slides.push({ kind: "Conclusión", big: concMatch[1].trim().slice(0, 120), sub: "" });
+
+  const llamMatch = text.match(/(?:llamado|aplicaci[oó]n\s+final|invitaci[oó]n)[^\n:]*:?\s*([^\n]+)/i);
+  if (llamMatch) slides.push({ kind: "Llamado", big: llamMatch[1].trim().slice(0, 120), sub: "" });
+
+  return slides;
+}
+
+function extractVerses(text: string): [string, string][] {
+  if (!text) return [];
+  const refRegex = /([1-3]?\s?[A-ZÁÉÍÓÚ][a-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚ][a-záéíóúñ]+)?)\s(\d+):(\d+)(?:-(\d+))?/g;
+  const counts = new Map<string, number>();
+  let m: RegExpExecArray | null;
+  while ((m = refRegex.exec(text))) {
+    const ref = `${m[1]} ${m[2]}:${m[3]}${m[4] ? `-${m[4]}` : ""}`;
+    counts.set(ref, (counts.get(ref) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([ref]) => [ref, ""] as [string, string]);
+}
+
+function extractNotes(text: string, slidesCount: number): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < slidesCount; i++) out.push("");
+  const notesMatch = text.match(/notas\s+del\s+predicador[^\n]*\n([\s\S]+?)(?=\n\s*\n|$)/i);
+  if (notesMatch) {
+    const lines = notesMatch[1].split("\n").filter((l) => l.trim());
+    lines.forEach((line, i) => { if (i < out.length) out[i] = line.trim(); });
+  }
+  return out;
+}
+
+export function PresenterScreen({ sermon, onClose }: { sermon: Sermon | null; onClose: () => void }) {
+  const [slide, setSlide] = React.useState(0);
+  const [elapsed, setElapsed] = React.useState(0);
   const [template, setTemplate] = React.useState("deck-hillsong");
-  const total = 12;
 
   const TEMPLATES = [
     { cls: "deck-hillsong", name: "Hillsong" },
@@ -28,35 +123,27 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
     { cls: "deck-avivamiento", name: "Avivamiento" },
   ];
 
-  const SLIDES = [
-    { kind: "Título", big: "El temor que se\nrinde a la fe", sub: "Hebreos 11:1–6" },
-    { kind: "Idea central", big: "La fe es el suelo\ninvisible bajo el pie", sub: "idea homilética" },
-    { kind: "Texto", big: "“Sin fe es imposible\nagradar a Dios.”", sub: "Hebreos 11:6" },
-    { kind: "Punto I", big: "Certeza, no\nausencia de temblor", sub: "Hebreos 11:1" },
-    { kind: "Sub-punto", big: "hypostasis · lo que\nsostiene por debajo", sub: "exégesis" },
-    { kind: "Texto", big: "Salió sin saber\na dónde iba.", sub: "Génesis 12:1" },
-    { kind: "Punto II", big: "La fe encuentra\nsu voz en la promesa", sub: "Salmo 23" },
-    { kind: "Ilustración", big: "Los veteranos\nmiran la cuerda.", sub: "Andes · guía de montaña" },
-    { kind: "Punto III", big: "La fe es probada\nen el silencio", sub: "1 Pedro 1:7" },
-    { kind: "Aplicación", big: "Camina un paso\ncon la promesa.", sub: "esta semana" },
-    { kind: "Cierre", big: "Mira la cicatriz\nen la mano abierta.", sub: "evangelio" },
-    { kind: "Bendición", big: "Que el Dios de\nla esperanza…", sub: "Romanos 15:13" },
-  ];
+  const slides = React.useMemo<Slide[]>(() => {
+    if (!sermon) return FALLBACK_SLIDES;
+    const deckText = sermon.slideDecks?.[0]?.text;
+    if (deckText) {
+      const fromDeck = parseSlidesFromDeck(deckText);
+      if (fromDeck.length) return fromDeck;
+    }
+    const fromText = parseSlidesFromSermonText(
+      sermon.sermonText || "",
+      sermon.title || "",
+      sermon.config?.scripture || "",
+    );
+    if (fromText.length) return fromText;
+    return [{ kind: "Título", big: sermon.title || "Sin contenido", sub: sermon.config?.scripture || "" }];
+  }, [sermon]);
 
-  const NOTES = [
-    "Saluda. Una respiración antes de empezar. Comparte que el texto que vas a leer no fue para una iglesia tranquila, sino para creyentes asustados.",
-    "Repite la idea central despacio. Pausa después de “suelo invisible” — deja que la imagen entre.",
-    "Lee el versículo en voz alta. Después haz silencio 2 segundos antes de la pregunta: ¿cómo nos acercamos a Dios sin fe?",
-    "Aquí entra el primer punto. La gente debe escribir: certeza, no ausencia de temblor. Repite tres veces.",
-    "Define hypostasis sin sonar académico. Compara con un puente: no lo ves desde el aire, pero está debajo.",
-    "Lee Génesis 12:1 con énfasis en “sin saber”. Hazlo personal: ¿qué te ha pedido Dios sin GPS?",
-    "Transición. Cambia el tono — más íntimo. Conduce a la oración del Salmo 23.",
-    "La historia del guía. No abuses, una sola anécdota. Cuenta la línea final mirando a un punto fijo: “miran la cuerda”.",
-    "Aplicación congregacional. Pide que alguien comparta brevemente (controlar tiempo).",
-    "Llamado pastoral. Habla más despacio. No insistas en cerrar — deja que descanse.",
-    "Cita la frase clave. Espera 3 segundos. Lee el versículo de cierre.",
-    "Bendición con manos levantadas. Lectura de Romanos 15:13.",
-  ];
+  const verses = React.useMemo(() => extractVerses(sermon?.sermonText || ""), [sermon]);
+  const notes = React.useMemo(() => extractNotes(sermon?.sermonText || "", slides.length), [sermon, slides.length]);
+
+  const total = slides.length;
+  const current = slides[Math.min(slide, total - 1)] ?? FALLBACK_SLIDES[0];
 
   React.useEffect(() => {
     const t = setInterval(() => setElapsed((e) => e + 1), 1000);
@@ -71,11 +158,14 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
+  }, [onClose, total]);
 
   const mins = Math.floor(elapsed / 60), secs = elapsed % 60;
   const target = 27 * 60;
   const pct = Math.min(100, (elapsed / target) * 100);
+
+  const title = sermon?.title || "Sin sermón";
+  const scripture = sermon?.config?.scripture || "";
 
   return (
     <div style={{
@@ -93,9 +183,9 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
         </div>
         <span style={{ height: 16, width: 1, background: "rgba(255,255,255,.15)" }} />
         <span style={{ fontFamily: "var(--font-display)", fontSize: 17, fontStyle: "italic" }}>
-          El temor que se rinde a la fe
+          {title}
         </span>
-        <span style={{ fontSize: 11, color: "rgba(240,232,213,.55)" }}>Hebreos 11:1–6</span>
+        {scripture && <span style={{ fontSize: 11, color: "rgba(240,232,213,.55)" }}>{scripture}</span>}
         <span className="spacer" />
 
         <div className="row" style={{ gap: 10 }}>
@@ -141,7 +231,7 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
                 </button>
               ))}
             </div>
-            <span style={{ fontSize: 11, color: "rgba(240,232,213,.45)", marginLeft: 8 }}>{SLIDES[slide].kind}</span>
+            <span style={{ fontSize: 11, color: "rgba(240,232,213,.45)", marginLeft: 8 }}>{current.kind}</span>
           </div>
 
           <div className={"slide-tile " + template} style={{
@@ -151,18 +241,20 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
             border: "1px solid rgba(255,255,255,.1)",
           }}>
             <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase", opacity: 0.65, marginBottom: 14 }}>
-              {SLIDES[slide].kind} · {String(slide + 1).padStart(2, "0")}
+              {current.kind} · {String(slide + 1).padStart(2, "0")}
             </div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 56, lineHeight: 1.05, fontWeight: 400, whiteSpace: "pre-wrap", letterSpacing: "-.014em" }}>
-              {SLIDES[slide].big}
+              {current.big}
             </div>
-            <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, letterSpacing: ".12em", textTransform: "uppercase", opacity: 0.65, marginTop: 18, fontWeight: 600 }}>
-              {SLIDES[slide].sub}
-            </div>
+            {current.sub && (
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, letterSpacing: ".12em", textTransform: "uppercase", opacity: 0.65, marginTop: 18, fontWeight: 600 }}>
+                {current.sub}
+              </div>
+            )}
           </div>
 
           <div className="row" style={{ gap: 4, marginTop: 12, overflowX: "auto" }}>
-            {SLIDES.map((s, i) => (
+            {slides.map((_, i) => (
               <button key={i} onClick={() => setSlide(i)} className={"slide-tile " + template} style={{
                 flex: "0 0 64px", aspectRatio: "16/9", borderRadius: 4,
                 border: i === slide ? "2px solid #d4a64e" : "1px solid rgba(255,255,255,.1)",
@@ -184,23 +276,21 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
               <span style={{ fontSize: 10.5, letterSpacing: ".18em", textTransform: "uppercase", color: "#d4a64e", fontWeight: 700 }}>
                 Notas del predicador
               </span>
-              <span className="spacer" />
-              <button style={{ fontSize: 11, color: "rgba(240,232,213,.55)" }}>Texto +</button>
-              <button style={{ fontSize: 11, color: "rgba(240,232,213,.55)", marginLeft: 8 }}>−</button>
             </div>
             <p style={{
               fontFamily: "var(--font-display)",
               fontSize: 22, lineHeight: 1.5, fontStyle: "italic",
               color: "#f0e8d5",
+              whiteSpace: "pre-wrap",
             }}>
-              {NOTES[slide]}
+              {notes[slide] || "(Sin notas para esta diapositiva)"}
             </p>
           </div>
 
           <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 16 }}>
             <div className="row" style={{ marginBottom: 10 }}>
               <span style={{ fontSize: 10.5, letterSpacing: ".18em", textTransform: "uppercase", color: "rgba(240,232,213,.45)", fontWeight: 600 }}>
-                Siguiente · {String(slide + 2).padStart(2, "0")} / {total}
+                Siguiente · {String(Math.min(slide + 2, total)).padStart(2, "0")} / {total}
               </span>
             </div>
             {slide + 1 < total && (
@@ -211,32 +301,29 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
                 position: "relative",
               }}>
                 <div style={{ fontSize: 9.5, letterSpacing: ".18em", textTransform: "uppercase", opacity: 0.55, marginBottom: 8, fontFamily: "var(--font-ui)", fontWeight: 600 }}>
-                  {SLIDES[slide + 1].kind}
+                  {slides[slide + 1].kind}
                 </div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 22, lineHeight: 1.15, whiteSpace: "pre-wrap" }}>
-                  {SLIDES[slide + 1].big}
+                  {slides[slide + 1].big}
                 </div>
               </div>
             )}
           </div>
 
-          <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 16 }}>
-            <span style={{ fontSize: 10.5, letterSpacing: ".18em", textTransform: "uppercase", color: "rgba(240,232,213,.45)", fontWeight: 600 }}>
-              Versículos a citar
-            </span>
-            <div className="col" style={{ gap: 8, marginTop: 10 }}>
-              {([
-                ["Hebreos 11:1", "Es, pues, la fe la certeza…"],
-                ["Salmo 23:4", "Aunque ande en valle…"],
-                ["1 Pedro 1:7", "La prueba de vuestra fe…"],
-              ] as [string, string][]).map(([r, t]) => (
-                <div key={r} className="row" style={{ gap: 12, padding: "6px 0", borderBottom: "1px dashed rgba(255,255,255,.08)" }}>
-                  <span style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "#d4a64e", fontWeight: 700, minWidth: 100 }}>{r}</span>
-                  <span className="serif" style={{ fontSize: 13.5, fontStyle: "italic", color: "rgba(240,232,213,.85)" }}>“{t}”</span>
-                </div>
-              ))}
+          {verses.length > 0 && (
+            <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 16 }}>
+              <span style={{ fontSize: 10.5, letterSpacing: ".18em", textTransform: "uppercase", color: "rgba(240,232,213,.45)", fontWeight: 600 }}>
+                Versículos citados
+              </span>
+              <div className="col" style={{ gap: 8, marginTop: 10 }}>
+                {verses.map(([r]) => (
+                  <div key={r} className="row" style={{ gap: 12, padding: "6px 0", borderBottom: "1px dashed rgba(255,255,255,.08)" }}>
+                    <span style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "#d4a64e", fontWeight: 700, minWidth: 100 }}>{r}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -247,14 +334,13 @@ export function PresenterScreen({ onClose }: { onClose: () => void }) {
         <button onClick={() => setSlide((s) => Math.min(total - 1, s + 1))} style={{ padding: "8px 14px", border: "1px solid #d4a64e", background: "#d4a64e", borderRadius: 6, fontSize: 12, color: "#0a0805", fontWeight: 600, display: "inline-flex", gap: 8, alignItems: "center" }}>
           Siguiente <kbd style={{ background: "rgba(0,0,0,.15)", color: "#0a0805", border: 0 }}>→</kbd>
         </button>
-        <button style={{ padding: "8px 14px", border: "1px solid rgba(255,255,255,.15)", borderRadius: 6, fontSize: 12, color: "rgba(240,232,213,.65)" }}>Pausar tiempo</button>
         <span className="spacer" />
         <span style={{ fontSize: 11.5, color: "rgba(240,232,213,.5)" }}>
-          {SLIDES[slide].kind} · {SLIDES[slide].sub}
+          {current.kind}{current.sub ? ` · ${current.sub}` : ""}
         </span>
         <span className="spacer" />
         <span style={{ fontSize: 11, color: "rgba(240,232,213,.4)" }}>
-          Espacio para avanzar · ⌘B para ocultar pantalla
+          Espacio para avanzar · Esc para salir
         </span>
       </div>
     </div>

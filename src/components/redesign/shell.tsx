@@ -29,7 +29,7 @@ export function Wordmark() {
   );
 }
 
-type Conversation = { id: string; title: string; date: string; active?: boolean };
+type Conversation = { id: string; title: string; updatedAt: string; active?: boolean };
 
 export function Sidebar({
   screen, setScreen, conversations, activeConv, setActiveConv, profile, open = false, onClose,
@@ -116,7 +116,7 @@ export function Sidebar({
               flex: 1, minWidth: 0, overflow: "hidden",
               textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{c.title}</span>
-            <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>{c.date}</span>
+            <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>{c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("es-MX", { month: "short", day: "numeric" }) : ""}</span>
           </button>
         ))}
       </div>

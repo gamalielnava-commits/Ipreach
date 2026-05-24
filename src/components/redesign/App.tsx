@@ -161,6 +161,7 @@ export default function App() {
           onOpenFilters={() => setFiltersOpen(true)}
           config={config}
           onRefreshConvs={loadConversations}
+          profile={profile}
         />
       )}
       {screen === "biblioteca" && (

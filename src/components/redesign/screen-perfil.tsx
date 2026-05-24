@@ -72,7 +72,7 @@ export function PerfilScreen({ onBack, onProfileSaved }: {
       await saveProfile(input);
       setSaved(true);
       onProfileSaved?.({
-        id: "",
+        id: loadedProfile?.id ?? "",
         ...input,
         subscriptionStatus: loadedProfile?.subscriptionStatus ?? "free",
         stripeCustomerId: loadedProfile?.stripeCustomerId,

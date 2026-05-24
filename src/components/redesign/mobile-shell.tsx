@@ -2,7 +2,7 @@
 import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import UserMenu from "@/components/UserMenu";
-import { IOSBiblio, IOSEstudio, IOSSermon, IOSSerie } from "./screen-movil";
+import { IOSEstudio, IOSSermon, IOSSerie } from "./screen-movil";
 import {
   IcBook,
   IcCalendar,

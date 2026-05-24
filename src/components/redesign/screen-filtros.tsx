@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { FRAMEWORKS_SHORT, THEMES_SAMPLE, COMMENTATORS, METHODS } from "./data";
+import { frameworks } from "@/lib/catalogs";
 import { IcBook, IcBookmark, IcCross, IcChevron, IcChevronD, IcClose, IcCheck } from "./icons";
 
 import type { SermonConfig } from "@/lib/types";
@@ -17,12 +18,13 @@ export function FiltersRail({
   setConfig: React.Dispatch<React.SetStateAction<SermonConfig>>;
 }) {
   const [framework, setFramework] = React.useState("Bautista");
-  const [length, setLength] = React.useState("mediano");
+  const [length, setLength] = React.useState("medio");
   const [method, setMethod] = React.useState("robinson");
   const [contentType, setContentType] = React.useState("sermon");
   const [themes, setThemes] = React.useState<string[]>(["Fe", "Temor"]);
   const [commentators, setCommentators] = React.useState<string[]>(["Tim Keller"]);
-  const [provider, setProvider] = React.useState("claude");
+  const [sermonTypes, setSermonTypes] = React.useState<string[]>(["Expositivo"]);
+  const [provider, setProvider] = React.useState("gemini");
   const [verseOpt, setVerseOpt] = React.useState("solo-cita");
   const [openSection, setOpenSection] = React.useState<Record<string, boolean>>({ themes: true, method: true });
 
@@ -34,7 +36,8 @@ export function FiltersRail({
       setContentType(config.contentType || "sermon");
       setThemes(config.themes || []);
       setCommentators(config.commentators || []);
-      setProvider(config.provider || "claude");
+      setSermonTypes(config.sermonTypes || ["Expositivo"]);
+      setProvider(config.provider || "gemini");
       setVerseOpt(config.verseOption || "solo-cita");
     }
   }, [open, config]);
@@ -48,6 +51,7 @@ export function FiltersRail({
       contentType,
       themes,
       commentators,
+      sermonTypes,
       provider: provider as any,
       verseOption: verseOpt as any,
     });
@@ -113,16 +117,31 @@ export function FiltersRail({
             <select className="field" value={framework} onChange={(e) => setFramework(e.target.value)}>
               {FRAMEWORKS_SHORT.map((f) => <option key={f}>{f}</option>)}
             </select>
-            <p className="serif muted" style={{ fontSize: 13, marginTop: 8, fontStyle: "italic" }}>
-              Énfasis bautista · autoridad de la Escritura · salvación por gracia · seguridad eterna.
-            </p>
+            {(() => {
+              const activeFw = frameworks.find(f => f.name.toLowerCase() === framework.toLowerCase() || f.slug.toLowerCase() === framework.toLowerCase());
+              return (
+                <p className="serif muted" style={{ fontSize: 13, marginTop: 8, fontStyle: "italic" }}>
+                  {activeFw ? `${activeFw.name} · Énfasis: ${activeFw.preachingEmphasis}` : "Marco doctrinal de predicación activa."}
+                </p>
+              );
+            })()}
           </div>
 
           <div className="rail-section">
             <span className="eyebrow">Tipo de sermón · máx. 2</span>
             <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
               {["Expositivo", "Textual", "Temático", "Narrativo", "Biográfico", "Doctrinal", "Devocional", "Evangelístico"].map((t) => (
-                <button type="button" key={t} className={"chip " + (t === "Expositivo" ? "chip-on" : "")}>{t}</button>
+                <button type="button" key={t}
+                  className={"chip " + (sermonTypes.includes(t) ? "chip-on" : "")}
+                  onClick={() => {
+                    if (sermonTypes.includes(t)) {
+                      setSermonTypes(sermonTypes.filter(x => x !== t));
+                    } else if (sermonTypes.length < 2) {
+                      setSermonTypes([...sermonTypes, t]);
+                    } else {
+                      setSermonTypes([sermonTypes[0], t]);
+                    }
+                  }}>{t}</button>
               ))}
             </div>
           </div>
@@ -197,7 +216,7 @@ export function FiltersRail({
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 4, marginBottom: 14 }}>
               {([
                 ["corto", "Corto", "10–15 min"],
-                ["mediano", "Mediano", "20–30 min"],
+                ["medio", "Mediano", "20–30 min"],
                 ["largo", "Largo", "35–45 min"],
               ] as [string, string, string][]).map(([k, n, d]) => (
                 <button type="button" key={k}

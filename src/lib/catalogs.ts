@@ -904,6 +904,76 @@ export const slideStyles: SlideStyle[] = [
       "Fotograma de pelicula, iluminacion dramatica, gradacion de color cinematografica, formato panoramico, atmosfera epica, grano sutil de film",
     example: "Estetica de cine, dramatica y de gran impacto visual.",
   },
+  {
+    slug: "pergamino",
+    name: "Pergamino",
+    promptBase:
+      "Fondo de pergamino antiguo envejecido con textura de papiro y bordes quemados, tonos sepia calidos y marfil dorado, tipografia con serif clasica estilo codice medieval, ornamentos de capitulares y bordes manuscritos, sensacion de sabiduria ancestral y reverencia biblica, iluminacion suave de vela sobre papel antiguo",
+    example: "Estetica de manuscrito antiguo, calida y solemne, como un codice biblico iluminado.",
+  },
+  {
+    slug: "vitral",
+    name: "Vitral",
+    promptBase:
+      "Vitrales de catedral gotica con luz sagrada atravesando cristales de colores intensos, azul profundo y rojo rubi con destellos dorados, marcos de plomo entre paneles de vidrio translucido, figuras y patrones sacros geometricos, sensacion de solemnidad, trascendencia y belleza liturgica",
+    example: "Colores vibrantes de vitral sobre fondo oscuro, sagrado y majestuoso.",
+  },
+  {
+    slug: "brutalista",
+    name: "Brutalista",
+    promptBase:
+      "Estetica brutalista con fondo blanco crudo o gris concreto, tipografia sans-serif gigante y stark en negro puro, composicion asimetrica con bloques geometricos duros, textura de hormigon visto, minimalismo industrial con contraste extremo, sensacion de fuerza, conviccion y crudeza visual",
+    example: "Diseno industrial austero, tipografia cruda y directa sobre concreto blanco.",
+  },
+  {
+    slug: "acuarela",
+    name: "Acuarela",
+    promptBase:
+      "Fondo con manchas y lavados de acuarela en tonos pastel suaves —lavanda, rosa palido, turquesa y melocoton—, bordes difuminados y organicos, textura de papel prensado en frio, tipografia elegante serif sobre campos de color translucido, sensacion de ternura, suavidad y creatividad artistica",
+    example: "Manchas de acuarela suaves y organicas, delicadas y llenas de color sutil.",
+  },
+  {
+    slug: "neon",
+    name: "Neon",
+    promptBase:
+      "Fondo negro o azul oscuro profundo con luces de neon brillantes en cyan, magenta y rosa electrico, tipografia que brilla con efecto de tubo de neon y resplandor luminoso, estetica synthwave y retrowave, destellos y reflejos sobre superficies oscuras, sensacion de energia juvenil, modernidad y vibracion nocturna",
+    example: "Luces de neon vibrantes sobre fondo oscuro, energetico y juvenil.",
+  },
+  {
+    slug: "mosaico",
+    name: "Mosaico",
+    promptBase:
+      "Arte de mosaico bizantino con teselas doradas y lapislazuli, fondo de hoja de oro y pigmentos terrosos, patrones sacros geometricos y ornamentales, tipografia clasica con detalles ornamentados, sensacion de lo sagrado eterno, la riqueza artistica de las basilicas antiguas y la reverencia del arte devocional",
+    example: "Teselas doradas y patrones sacros bizantinos, lujoso y atemporal.",
+  },
+  {
+    slug: "editorial",
+    name: "Editorial",
+    promptBase:
+      "Diseno editorial tipo revista contemporanea, cuadricula limpia y estructurada, tipografia sans-serif moderna y jerarquizada, fondo blanco o crema con acentos de color coral y melocoton, uso de lineas finas y espacios generosos, sensacion de profesionalismo, claridad y sofisticacion grafica moderna",
+    example: "Layout limpio tipo revista, sofisticado y profesional con tipografia moderna.",
+  },
+  {
+    slug: "tipografico",
+    name: "Tipografico",
+    promptBase:
+      "Tipografia colosal como protagonista absoluta, letras gigantes en blanco sobre fondo negro o viceversa, composicion centrada en la palabra escrita, fuentes bold condensadas y de alto impacto, jerarquia tipografica extrema, sin imagenes —solo letras y espacio—, sensacion de peso, autoridad y declaracion profetica",
+    example: "Letras enormes en blanco y negro, impactantes y declarativas.",
+  },
+  {
+    slug: "selva",
+    name: "Selva",
+    promptBase:
+      "Escenario botanico de selva tropical iluminada por la luna, hojas de palma, monstera y helechos en verdes profundos y esmeralda, fondo oscuro con destellos de luz entre el follaje, tipografia color crema o dorada sobre la vegetacion, sensacion de misterio, vida abundante y la creacion de Dios en su esplendor natural",
+    example: "Follaje tropical denso sobre fondo oscuro, exuberante y misterioso.",
+  },
+  {
+    slug: "avivamiento",
+    name: "Avivamiento",
+    promptBase:
+      "Llamas de fuego de Pentecostes en tonos naranja intenso, ambar y rojo profundo, fondo oscuro rojo vino con particulas de brasa incandescente, tipografia blanca bold que resplandece contra las llamas, sensacion de poder del Espiritu Santo, pasion ardiente, consagracion y fuego divino que transforma",
+    example: "Llamas y fuego sagrado sobre fondo oscuro, apasionado y poderoso.",
+  },
 ];
 
 export const slideDensities = [

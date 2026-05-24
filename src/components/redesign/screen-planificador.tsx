@@ -43,25 +43,50 @@ export function PlanificadorScreen() {
 
   React.useEffect(() => {
     (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return;
-      const y = year;
-      const m = month + 1;
-      const from = `${y}-${String(m).padStart(2, "0")}-01`;
-      const to = `${y}-${String(m).padStart(2, "0")}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`;
-      const { data } = await supabase.from("schedule_events")
-        .select("*")
-        .gte("event_date", from)
-        .lte("event_date", to);
-      if (!data) return;
-      const map: Record<string, CalEvent[]> = {};
-      for (const ev of data as { id: string; title: string; event_date: string; type: string; description: string }[]) {
-        const [ey, em, ed] = ev.event_date.split("-");
-        const key = `${ey}-${Number(em)}-${Number(ed)}`;
-        if (!map[key]) map[key] = [];
-        map[key].push({ id: ev.id, kind: ev.type, title: ev.title, scripture: ev.description, color: TYPE_COLORS[ev.type] ?? "var(--accent)" });
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        if (auth.user) {
+          const y = year;
+          const m = month + 1;
+          const from = `${y}-${String(m).padStart(2, "0")}-01`;
+          const to = `${y}-${String(m).padStart(2, "0")}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`;
+          const { data, error } = await supabase.from("schedule_events")
+            .select("*")
+            .gte("event_date", from)
+            .lte("event_date", to);
+          if (error) throw error;
+          
+          if (data) {
+            const map: Record<string, CalEvent[]> = {};
+            for (const ev of data as { id: string; title: string; event_date: string; type: string; description: string }[]) {
+              const [ey, em, ed] = ev.event_date.split("-");
+              const key = `${ey}-${Number(em)}-${Number(ed)}`;
+              if (!map[key]) map[key] = [];
+              map[key].push({ id: ev.id, kind: ev.type, title: ev.title, scripture: ev.description, color: TYPE_COLORS[ev.type] ?? "var(--accent)" });
+            }
+            setExtraEvents(map);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Using local schedule fallback:", err);
       }
-      setExtraEvents(map);
+
+      // Fallback
+      if (typeof window !== "undefined") {
+        const local = localStorage.getItem("ipreach_schedule_events");
+        const list = local ? JSON.parse(local) : [];
+        const map: Record<string, CalEvent[]> = {};
+        for (const ev of list as any[]) {
+          const [ey, em, ed] = ev.event_date.split("-");
+          const key = `${ey}-${Number(em)}-${Number(ed)}`;
+          if (Number(ey) === year && Number(em) === month + 1) {
+            if (!map[key]) map[key] = [];
+            map[key].push({ id: ev.id || crypto.randomUUID(), kind: ev.type, title: ev.title, scripture: ev.description, color: TYPE_COLORS[ev.type] ?? "var(--accent)" });
+          }
+        }
+        setExtraEvents(map);
+      }
     })();
   }, [year, month]);
 
@@ -89,32 +114,54 @@ export function PlanificadorScreen() {
   async function addEvent() {
     if (!newTitle.trim() || !newDate) return;
     setSaving(true);
-    const { data: auth } = await supabase.auth.getUser();
-    if (auth.user) {
-      const { data } = await supabase.from("schedule_events").insert({
-        user_id: auth.user.id,
-        title: newTitle.trim(),
-        event_date: newDate,
-        type: newType,
-        description: newDesc.trim(),
-      }).select("*").single();
-      if (data) {
-        const [ey, em, ed] = newDate.split("-");
-        const key = `${ey}-${Number(em)}-${Number(ed)}`;
-        const ev = data as { id: string; title: string; event_date: string; type: string; description: string };
-        setExtraEvents((prev) => ({
-          ...prev,
-          [key]: [...(prev[key] ?? []), { id: ev.id, kind: ev.type, title: ev.title, scripture: ev.description, color: TYPE_COLORS[ev.type] ?? "var(--accent)" }],
-        }));
+    let success = false;
+    let savedEv: any = null;
+    
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth.user) {
+        const { data, error } = await supabase.from("schedule_events").insert({
+          user_id: auth.user.id,
+          title: newTitle.trim(),
+          event_date: newDate,
+          type: newType,
+          description: newDesc.trim(),
+        }).select("*").single();
+        if (error) throw error;
+        if (data) {
+          savedEv = data;
+          success = true;
+        }
       }
-    } else {
+    } catch (err) {
+      console.warn("Supabase schedule failed, saving locally:", err);
+    }
+    
+    if (!success) {
+      if (typeof window !== "undefined") {
+        const local = localStorage.getItem("ipreach_schedule_events");
+        const list = local ? JSON.parse(local) : [];
+        savedEv = {
+          id: crypto.randomUUID(),
+          title: newTitle.trim(),
+          event_date: newDate,
+          type: newType,
+          description: newDesc.trim(),
+        };
+        list.push(savedEv);
+        localStorage.setItem("ipreach_schedule_events", JSON.stringify(list));
+      }
+    }
+    
+    if (savedEv) {
       const [ey, em, ed] = newDate.split("-");
       const key = `${ey}-${Number(em)}-${Number(ed)}`;
       setExtraEvents((prev) => ({
         ...prev,
-        [key]: [...(prev[key] ?? []), { kind: newType, title: newTitle.trim(), scripture: newDesc.trim(), color: TYPE_COLORS[newType] ?? "var(--accent)" }],
+        [key]: [...(prev[key] ?? []), { id: savedEv.id, kind: savedEv.type, title: savedEv.title, scripture: savedEv.description, color: TYPE_COLORS[savedEv.type] ?? "var(--accent)" }],
       }));
     }
+    
     setNewTitle(""); setNewDate(""); setNewDesc(""); setNewType("sermon");
     setSaving(false);
     setAddOpen(false);

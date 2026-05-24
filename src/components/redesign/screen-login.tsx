@@ -168,6 +168,9 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
             <button className="btn btn-accent" style={{ justifyContent: "center", padding: "12px" }} onClick={handleAuth} disabled={loading}>
               {loading ? "Procesando..." : (mode === "signin" ? "Entrar" : "Crear cuenta")} {!loading && <IcArrowRight size={14} />}
             </button>
+            <button type="button" className="btn btn-ghost" style={{ justifyContent: "center", padding: "12px", border: "1px dashed var(--line)" }} onClick={onSignIn} disabled={loading}>
+              Continuar como Invitado (Sin Registro)
+            </button>
           </div>
 
           <p className="ui muted" style={{ textAlign: "center", marginTop: 22, fontSize: 12 }}>

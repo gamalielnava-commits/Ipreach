@@ -3,7 +3,7 @@ import React from "react";
 import { IcChat, IcBook, IcLibrary, IcPlus, IcSlide, IcCalendar, IcSettings, IcSpark } from "./icons";
 
 export type Screen =
-  | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "perfil" | "planes";
+  | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "movil" | "marca" | "perfil" | "planes";
 
 export function Wordmark() {
   return (
@@ -29,7 +29,7 @@ export function Wordmark() {
   );
 }
 
-type Conversation = { id: string; title: string; date: string; active?: boolean };
+type Conversation = { id: string; title: string; date?: string; active?: boolean; updatedAt?: string; createdAt?: string };
 
 export function Sidebar({
   screen, setScreen, conversations, activeConv, setActiveConv, profile, open = false, onClose,
@@ -50,7 +50,7 @@ export function Sidebar({
 
       <div style={{ padding: "0 12px 8px" }}>
         <button className="btn btn-accent" style={{ width: "100%", justifyContent: "center" }}
-          onClick={() => go("estudio")}>
+          onClick={() => { setActiveConv("c1"); go("estudio"); }}>
           <IcPlus size={16} /> Nuevo estudio
         </button>
       </div>
@@ -106,7 +106,9 @@ export function Sidebar({
               flex: 1, minWidth: 0, overflow: "hidden",
               textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{c.title}</span>
-            <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>{c.date}</span>
+            <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
+              {c.date || (c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("es-ES", { month: "short", day: "numeric" }) : "")}
+            </span>
           </button>
         ))}
       </div>

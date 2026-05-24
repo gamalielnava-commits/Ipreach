@@ -107,7 +107,7 @@ export function Sidebar({
               textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{c.title}</span>
             <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
-              {c.date || (c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("es-ES", { month: "short", day: "numeric" }) : "")}
+              {c.date || (c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("es-MX", { month: "short", day: "numeric" }) : "")}
             </span>
           </button>
         ))}

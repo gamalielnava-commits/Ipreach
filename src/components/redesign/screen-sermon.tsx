@@ -27,6 +27,7 @@ export function SermonScreen({
   const [saving, setSaving] = React.useState(false);
   const [tab, setTab] = React.useState("texto");
   const [generatingOutline, setGeneratingOutline] = React.useState(false);
+  const isDirty = React.useRef(false);
 
   const [scheduleModalOpen, setScheduleModalOpen] = React.useState(false);
   const [scheduleDate, setScheduleDate] = React.useState("");
@@ -39,6 +40,7 @@ export function SermonScreen({
 
   React.useEffect(() => {
     if (!sermonId) return;
+    isDirty.current = false;
     (async () => {
       setLoading(true);
       try {
@@ -53,7 +55,7 @@ export function SermonScreen({
   }, [sermonId]);
 
   React.useEffect(() => {
-    if (!sermon) return;
+    if (!sermon || !isDirty.current) return;
     const timer = setTimeout(async () => {
       setSaving(true);
       try {
@@ -66,6 +68,11 @@ export function SermonScreen({
     }, 1500);
     return () => clearTimeout(timer);
   }, [sermon]);
+
+  const updateSermon: React.Dispatch<React.SetStateAction<Sermon | null>> = (updater) => {
+    isDirty.current = true;
+    setSermon(updater);
+  };
 
   async function handleGenerateOutline() {
     if (!sermon) return;
@@ -82,7 +89,7 @@ export function SermonScreen({
       });
       if (!res.ok) throw new Error("Error en la generación de bosquejo.");
       const data = await res.json();
-      setSermon({ ...sermon, outlineText: data.text });
+      updateSermon({ ...sermon, outlineText: data.text });
     } catch (err: any) {
       alert(`Error al generar bosquejo: ${err.message}`);
     } finally {
@@ -104,7 +111,7 @@ export function SermonScreen({
       });
       if (!res.ok) throw new Error("Error en la regeneración de sermón.");
       const data = await res.json();
-      setSermon({ ...sermon, sermonText: data.text });
+      updateSermon({ ...sermon, sermonText: data.text });
     } catch (err: any) {
       alert(`Error al regenerar sermón: ${err.message}`);
     } finally {
@@ -244,11 +251,11 @@ export function SermonScreen({
 
       <div style={{ flex: 1, overflowY: "auto", padding: "26px 32px 60px" }}>
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          {tab === "texto" && <TextoTab sermon={sermon} onChange={(txt) => setSermon({ ...sermon, sermonText: txt })} />}
-          {tab === "bosquejo" && <BosquejoTab sermon={sermon} onChange={(txt) => setSermon({ ...sermon, outlineText: txt })} onRegenerate={handleGenerateOutline} generating={generatingOutline} />}
-          {tab === "diapositivas" && <DiapositivasTab sermon={sermon} setSermon={setSermon} />}
-          {tab === "imagenes" && <ImagenesTab sermon={sermon} setSermon={setSermon} />}
-          {tab === "biblia" && <BibliaTab sermon={sermon} setSermon={setSermon} />}
+          {tab === "texto" && <TextoTab sermon={sermon} onChange={(txt) => updateSermon({ ...sermon, sermonText: txt })} />}
+          {tab === "bosquejo" && <BosquejoTab sermon={sermon} onChange={(txt) => updateSermon({ ...sermon, outlineText: txt })} onRegenerate={handleGenerateOutline} generating={generatingOutline} />}
+          {tab === "diapositivas" && <DiapositivasTab sermon={sermon} setSermon={updateSermon} />}
+          {tab === "imagenes" && <ImagenesTab sermon={sermon} setSermon={updateSermon} />}
+          {tab === "biblia" && <BibliaTab sermon={sermon} setSermon={updateSermon} />}
         </div>
       </div>
 
@@ -916,15 +923,17 @@ function BibliaTab({
     ["Romanos 10:17", "Así que la fe es por el oír, y el oír, por la palabra de Dios."],
   ];
 
-  async function handleSearch() {
-    if (!query.trim()) return;
+  async function handleSearch(overrideQuery?: string) {
+    const q = (overrideQuery ?? query).trim();
+    if (!q) return;
+    if (overrideQuery) setQuery(overrideQuery);
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/bible", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reference: query, version }),
+        body: JSON.stringify({ reference: q, version }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -969,7 +978,7 @@ function BibliaTab({
               <option value="NTV">NTV</option>
             </select>
           </div>
-          <button className="btn btn-accent" onClick={handleSearch} disabled={loading}>
+          <button className="btn btn-accent" onClick={() => handleSearch()} disabled={loading}>
             <IcSearch size={14} /> {loading ? "Buscando..." : "Buscar"}
           </button>
         </div>
@@ -1012,7 +1021,7 @@ function BibliaTab({
               <div>
                 <p className="serif" style={{ fontSize: 15, color: "var(--ink-2)", fontStyle: "italic" }}>“{txt}”</p>
                 <div className="row" style={{ gap: 4, marginTop: 4 }}>
-                  <button className="btn-quiet" style={{ fontSize: 11 }} onClick={() => { setQuery(ref); handleSearch(); }}>Buscar pasaje</button>
+                  <button className="btn-quiet" style={{ fontSize: 11 }} onClick={() => handleSearch(ref)}>Buscar pasaje</button>
                 </div>
               </div>
             </div>

@@ -3,7 +3,7 @@ import React from "react";
 import { TopBar } from "./shell";
 import { SUGGESTIONS, SAVED } from "./data";
 import { ICONS, IcSpark, IcBook, IcBookmark, IcCross, IcChevron, IcSliders, IcUser, IcRefresh, IcCopy, IcShare, IcArrowUp, IcAttach, IcMic, IcClose } from "./icons";
-import type { SermonConfig } from "@/lib/types";
+import type { SermonConfig, Profile } from "@/lib/types";
 import { listMessages, addMessage, createConversation } from "@/lib/chat";
 import { saveSermon, newId } from "@/lib/store";
 
@@ -16,6 +16,7 @@ export function EstudioScreen({
   onOpenFilters,
   config,
   onRefreshConvs,
+  profile,
 }: {
   activeConvId: string | null;
   setActiveConvId: (id: string) => void;
@@ -23,6 +24,7 @@ export function EstudioScreen({
   onOpenFilters: () => void;
   config: SermonConfig;
   onRefreshConvs: () => void;
+  profile?: Profile | null;
 }) {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState("");
@@ -238,7 +240,7 @@ export function EstudioScreen({
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
           {loadingMsg ? (
             <div style={{ textAlign: "center", padding: 40, color: "var(--ink-3)" }}>Cargando conversación...</div>
-          ) : messages.length === 0 ? <EmptyState onPick={send} /> : (
+          ) : messages.length === 0 ? <EmptyState onPick={send} name={profile?.displayName} /> : (
             <div className="col" style={{ gap: 16 }}>
               {messages.map((m) => (
                 <div key={m.id} className={"bubble " + (m.role === "user" ? "bubble-user" : "bubble-ai")}>
@@ -292,17 +294,21 @@ export function EstudioScreen({
   );
 }
 
-function EmptyState({ onPick }: { onPick: (text: string) => void }) {
-  const hour = new Date().getHours();
+function EmptyState({ onPick, name }: { onPick: (text: string) => void; name?: string | null }) {
+  const now = new Date();
+  const hour = now.getHours();
   const greet = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+  const dayName = now.toLocaleDateString("es-MX", { weekday: "long" });
+  const weekNum = Math.ceil((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 86400000));
+  const displayName = name?.split(" ")[0] ?? "Pastor";
   return (
     <div style={{ paddingTop: 24 }}>
       <div className="row" style={{ gap: 10, marginBottom: 6 }}>
-        <span className="pill"><IcSpark size={11} /> Hoy es jueves · semana 21</span>
+        <span className="pill"><IcSpark size={11} /> Hoy es {dayName} · semana {weekNum}</span>
         <span className="pill pill-quiet">Próximo servicio · domingo 10:30</span>
       </div>
       <h1 className="display" style={{ fontSize: 44, margin: "8px 0 6px", fontWeight: 400 }}>
-        {greet}, <span style={{ fontStyle: "italic", color: "var(--accent)" }}>Gamaliel</span>.
+        {greet}, <span style={{ fontStyle: "italic", color: "var(--accent)" }}>{displayName}</span>.
       </h1>
       <p className="serif muted" style={{ fontSize: 18, maxWidth: 560, lineHeight: 1.5 }}>
         ¿Qué quieres preparar hoy? Empieza con una idea, una cita, o elige una sugerencia.

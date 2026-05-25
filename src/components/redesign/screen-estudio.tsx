@@ -152,9 +152,15 @@ export function EstudioScreen({
       setMessages((m) => [...m, { role: "ai", text: aiText, id: Date.now() + 1 }]);
     } catch (err: any) {
       console.error(err);
+      const msg: string = err?.message || "";
+      const friendly = msg.includes("API_KEY") || msg.includes("api_key")
+        ? "Falta configurar la clave de la IA. Contacta al administrador."
+        : msg.length > 0
+          ? msg
+          : "No se pudo comunicar con el servidor. Intenta de nuevo.";
       setMessages((m) => [
         ...m,
-        { role: "ai", text: `Error: ${err.message || "No se pudo comunicar con el servidor."}`, id: Date.now() + 1 },
+        { role: "ai", text: `⚠️ ${friendly}`, id: Date.now() + 1 },
       ]);
     } finally {
       setSending(false);

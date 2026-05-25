@@ -31,7 +31,9 @@ async function callClaude(system: string, turns: Turn[]): Promise<string> {
 
   if (!res.ok) {
     const detail = await res.text();
-    throw new Error(`Claude respondio ${res.status}: ${detail.slice(0, 300)}`);
+    let msg = `Claude respondió ${res.status}`;
+    try { const p = JSON.parse(detail); msg = p?.error?.message || msg; } catch { /* keep */ }
+    throw new Error(msg);
   }
   const data = await res.json();
   const text = data?.content?.[0]?.text;
@@ -42,7 +44,7 @@ async function callClaude(system: string, turns: Turn[]): Promise<string> {
 async function callGemini(system: string, turns: Turn[]): Promise<string> {
   const key = process.env.GOOGLE_API_KEY;
   if (!key) throw new Error("Falta configurar GOOGLE_API_KEY en el servidor.");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-pro";
+  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
@@ -62,7 +64,9 @@ async function callGemini(system: string, turns: Turn[]): Promise<string> {
 
   if (!res.ok) {
     const detail = await res.text();
-    throw new Error(`Gemini respondio ${res.status}: ${detail.slice(0, 300)}`);
+    let msg = `Gemini respondió ${res.status}`;
+    try { const p = JSON.parse(detail); msg = p?.error?.message || msg; } catch { /* keep */ }
+    throw new Error(msg);
   }
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts

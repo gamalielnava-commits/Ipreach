@@ -57,16 +57,10 @@ export default function App() {
     provider: "gemini",
   });
 
-  const activeConvRef = React.useRef(activeConv);
-  activeConvRef.current = activeConv;
-
   const loadConversations = React.useCallback(async () => {
     try {
       const list = await listConversations();
       setConversations(list);
-      if (list.length > 0 && activeConvRef.current === "c1") {
-        setActiveConv(list[0].id);
-      }
     } catch (err) {
       console.error("Error cargando conversaciones:", err);
     }

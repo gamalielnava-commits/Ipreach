@@ -61,16 +61,13 @@ export default function App() {
     try {
       const list = await listConversations();
       setConversations(list);
-      if (list.length > 0 && activeConv === "c1") {
-        setActiveConv(list[0].id);
-      }
     } catch (err) {
       console.error("Error cargando conversaciones:", err);
     }
-  }, [activeConv]);
+  }, []);
 
   React.useEffect(() => {
-    loadConversations();
+    if (profile) loadConversations();
   }, [profile, loadConversations]);
 
   React.useEffect(() => {

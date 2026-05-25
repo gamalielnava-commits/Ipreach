@@ -33,6 +33,7 @@ export function EstudioScreen({
   const endRef = React.useRef<HTMLDivElement>(null);
   const [attachedFile, setAttachedFile] = React.useState<{ name: string; content: string } | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const isCreatingConversation = React.useRef(false);
 
   function handleAttachClick() {
     fileInputRef.current?.click();
@@ -63,6 +64,12 @@ export function EstudioScreen({
   React.useEffect(() => {
     if (!activeConvId) {
       setMessages([]);
+      return;
+    }
+    // Skip fetch when we just created this conversation — messages are already
+    // tracked locally and the DB write may not have completed yet.
+    if (isCreatingConversation.current) {
+      isCreatingConversation.current = false;
       return;
     }
     (async () => {
@@ -97,6 +104,7 @@ export function EstudioScreen({
         const convTitle = t || `Archivo: ${attachedFile?.name || "Conversación"}`;
         const newConv = await createConversation(convTitle);
         currentConvId = newConv.id;
+        isCreatingConversation.current = true;
         setActiveConvId(newConv.id);
         onRefreshConvs();
       } catch (err: any) {
@@ -144,9 +152,15 @@ export function EstudioScreen({
       setMessages((m) => [...m, { role: "ai", text: aiText, id: Date.now() + 1 }]);
     } catch (err: any) {
       console.error(err);
+      const msg: string = err?.message || "";
+      const friendly = msg.includes("API_KEY") || msg.includes("api_key")
+        ? "Falta configurar la clave de la IA. Contacta al administrador."
+        : msg.length > 0
+          ? msg
+          : "No se pudo comunicar con el servidor. Intenta de nuevo.";
       setMessages((m) => [
         ...m,
-        { role: "ai", text: `Error: ${err.message || "No se pudo comunicar con el servidor."}`, id: Date.now() + 1 },
+        { role: "ai", text: `⚠️ ${friendly}`, id: Date.now() + 1 },
       ]);
     } finally {
       setSending(false);

@@ -75,7 +75,7 @@ export async function listScheduleEvents(year: number, month: number): Promise<S
   return remote;
 }
 
-export async function saveScheduleEvent(event: ScheduleEvent): Promise<void> {
+export async function saveScheduleEvent(event: ScheduleEvent): Promise<ScheduleEvent> {
   let success = false;
   let savedEvent: ScheduleEvent | null = null;
   

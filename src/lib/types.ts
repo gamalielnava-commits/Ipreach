@@ -95,3 +95,47 @@ export interface ChatMessage {
   content: string;
   createdAt: string;
 }
+
+export interface Series {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  scriptureReference: string;
+  coverStyle: string;
+  totalParts: number;
+  completedParts: number;
+  status: "draft" | "active" | "completed";
+  nextScheduledDate?: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeriesPart {
+  id: string;
+  seriesId: string;
+  sermonId?: string;
+  partNumber: number;
+  title: string;
+  scripture: string;
+  scheduledDate?: string;
+  deliveredDate?: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScheduleEvent {
+  id?: string;
+  userId?: string;
+  title: string;
+  eventDate: string;
+  type: "sermon" | "devocional" | "clase" | "otro";
+  description: string;
+  scripture: string;
+  seriesId?: string;
+  sermonId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

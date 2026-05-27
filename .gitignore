@@ -1,11 +1,73 @@
-node_modules
-.next
-out
-build
+```
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment variables
 .env
 .env.local
-.env*.local
+*.env.*
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Python related
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+coverage/
+htmlcov/
+
+# Logs
+*.log
+
+# OS generated files
 .DS_Store
+Thumbs.db
+
+# Testing
+.nyc_output/
+coverage/
+junit.xml
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary folders
+temp/
+tmp/
+
+# Compiled Binary Files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Package manager folders
+.jspm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# SASS/SCSS compiled files
+.css.map
+
+# TypeScript
 *.tsbuildinfo
-next-env.d.ts
-.vercel
+```

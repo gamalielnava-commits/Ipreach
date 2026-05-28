@@ -2,8 +2,8 @@
 import React from "react";
 import { TopBar } from "./shell";
 import { SUGGESTIONS, SAVED } from "./data";
-import { ICONS, IcSpark, IcBook, IcBookmark, IcCross, IcChevron, IcSliders, IcUser, IcRefresh, IcCopy, IcShare, IcArrowUp, IcAttach, IcMic } from "./icons";
-import type { SermonConfig } from "@/lib/types";
+import { ICONS, IcSpark, IcBook, IcBookmark, IcCross, IcChevron, IcSliders, IcUser, IcRefresh, IcCopy, IcShare, IcArrowUp, IcAttach, IcMic, IcClose } from "./icons";
+import type { SermonConfig, Profile } from "@/lib/types";
 import { listMessages, addMessage, createConversation } from "@/lib/chat";
 import { saveSermon, newId } from "@/lib/store";
 
@@ -16,6 +16,7 @@ export function EstudioScreen({
   onOpenFilters,
   config,
   onRefreshConvs,
+  profile,
 }: {
   activeConvId: string | null;
   setActiveConvId: (id: string) => void;
@@ -23,12 +24,38 @@ export function EstudioScreen({
   onOpenFilters: () => void;
   config: SermonConfig;
   onRefreshConvs: () => void;
+  profile?: Profile | null;
 }) {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [loadingMsg, setLoadingMsg] = React.useState(false);
   const endRef = React.useRef<HTMLDivElement>(null);
+  const [attachedFile, setAttachedFile] = React.useState<{ name: string; content: string } | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const isCreatingConversation = React.useRef(false);
+
+  function handleAttachClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext === "pdf" || ext === "docx" || ext === "doc") {
+      alert("Por el momento, solo se soportan formatos de texto plano (.txt, .md, .json).");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setAttachedFile({ name: file.name, content: content || "" });
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
 
   React.useEffect(() => {
     if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -37,6 +64,12 @@ export function EstudioScreen({
   React.useEffect(() => {
     if (!activeConvId) {
       setMessages([]);
+      return;
+    }
+    // Skip fetch when we just created this conversation — messages are already
+    // tracked locally and the DB write may not have completed yet.
+    if (isCreatingConversation.current) {
+      isCreatingConversation.current = false;
       return;
     }
     (async () => {
@@ -51,18 +84,27 @@ export function EstudioScreen({
       }
     })();
   }, [activeConvId]);
-
   async function send(text?: string) {
     const t = (text ?? input).trim();
-    if (!t) return;
+    if (!t && !attachedFile) return;
 
     let currentConvId = activeConvId;
+    let promptToSend = t;
+    let dbContent = t;
+
+    if (attachedFile) {
+      promptToSend = `${t}\n\n[Archivo adjunto: ${attachedFile.name}]\nContenido del archivo:\n${attachedFile.content}`;
+      dbContent = t ? `${t} (Adjunto: ${attachedFile.name})` : `Adjuntó archivo: ${attachedFile.name}`;
+      setAttachedFile(null);
+    }
 
     if (!currentConvId) {
       try {
         setSending(true);
-        const newConv = await createConversation(t);
+        const convTitle = t || `Archivo: ${attachedFile?.name || "Conversación"}`;
+        const newConv = await createConversation(convTitle);
         currentConvId = newConv.id;
+        isCreatingConversation.current = true;
         setActiveConvId(newConv.id);
         onRefreshConvs();
       } catch (err: any) {
@@ -73,20 +115,20 @@ export function EstudioScreen({
       }
     }
 
-    const userMsgLocal = { role: "user" as const, text: t, id: Date.now() };
+    const userMsgLocal = { role: "user" as const, text: dbContent, id: Date.now() };
     setMessages((m) => [...m, userMsgLocal]);
     setInput("");
     setSending(true);
 
     try {
-      await addMessage(currentConvId, "user", t);
+      await addMessage(currentConvId, "user", dbContent);
 
       const chatHistory = [
         ...messages.map((m) => ({
           role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
           content: m.text,
         })),
-        { role: "user" as const, content: t },
+        { role: "user" as const, content: promptToSend },
       ];
 
       const res = await fetch("/api/chat", {
@@ -110,15 +152,20 @@ export function EstudioScreen({
       setMessages((m) => [...m, { role: "ai", text: aiText, id: Date.now() + 1 }]);
     } catch (err: any) {
       console.error(err);
+      const msg: string = err?.message || "";
+      const friendly = msg.includes("API_KEY") || msg.includes("api_key")
+        ? "Falta configurar la clave de la IA. Contacta al administrador."
+        : msg.length > 0
+          ? msg
+          : "No se pudo comunicar con el servidor. Intenta de nuevo.";
       setMessages((m) => [
         ...m,
-        { role: "ai", text: `Error: ${err.message || "No se pudo comunicar con el servidor."}`, id: Date.now() + 1 },
+        { role: "ai", text: `⚠️ ${friendly}`, id: Date.now() + 1 },
       ]);
     } finally {
       setSending(false);
     }
   }
-
   async function handleOpenAsSermon() {
     setSending(true);
     try {
@@ -207,7 +254,7 @@ export function EstudioScreen({
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
           {loadingMsg ? (
             <div style={{ textAlign: "center", padding: 40, color: "var(--ink-3)" }}>Cargando conversación...</div>
-          ) : messages.length === 0 ? <EmptyState onPick={send} /> : (
+          ) : messages.length === 0 ? <EmptyState onPick={send} name={profile?.displayName} /> : (
             <div className="col" style={{ gap: 16 }}>
               {messages.map((m) => (
                 <div key={m.id} className={"bubble " + (m.role === "user" ? "bubble-user" : "bubble-ai")}>
@@ -246,22 +293,36 @@ export function EstudioScreen({
         onSend={() => send()}
         disabled={sending}
         config={config}
+        attachedFile={attachedFile}
+        setAttachedFile={setAttachedFile}
+        onAttachClick={handleAttachClick}
+      />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: "none" }}
+        accept=".txt,.md,.pdf,.docx,.json"
       />
     </div>
   );
 }
 
-function EmptyState({ onPick }: { onPick: (text: string) => void }) {
-  const hour = new Date().getHours();
+function EmptyState({ onPick, name }: { onPick: (text: string) => void; name?: string | null }) {
+  const now = new Date();
+  const hour = now.getHours();
   const greet = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+  const dayName = now.toLocaleDateString("es-MX", { weekday: "long" });
+  const weekNum = Math.ceil((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 86400000));
+  const displayName = name?.split(" ")[0] ?? "Pastor";
   return (
     <div style={{ paddingTop: 24 }}>
       <div className="row" style={{ gap: 10, marginBottom: 6 }}>
-        <span className="pill"><IcSpark size={11} /> Hoy es jueves · semana 21</span>
+        <span className="pill"><IcSpark size={11} /> Hoy es {dayName} · semana {weekNum}</span>
         <span className="pill pill-quiet">Próximo servicio · domingo 10:30</span>
       </div>
       <h1 className="display" style={{ fontSize: 44, margin: "8px 0 6px", fontWeight: 400 }}>
-        {greet}, <span style={{ fontStyle: "italic", color: "var(--accent)" }}>Gamaliel</span>.
+        {greet}, <span style={{ fontStyle: "italic", color: "var(--accent)" }}>{displayName}</span>.
       </h1>
       <p className="serif muted" style={{ fontSize: 18, maxWidth: 560, lineHeight: 1.5 }}>
         ¿Qué quieres preparar hoy? Empieza con una idea, una cita, o elige una sugerencia.
@@ -319,12 +380,24 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
   );
 }
 
-function Composer({ value, onChange, onSend, disabled, config }: {
+function Composer({
+  value,
+  onChange,
+  onSend,
+  disabled,
+  config,
+  attachedFile,
+  setAttachedFile,
+  onAttachClick,
+}: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
   disabled: boolean;
   config: SermonConfig;
+  attachedFile?: { name: string } | null;
+  setAttachedFile?: (f: null) => void;
+  onAttachClick?: () => void;
 }) {
   const ref = React.useRef<HTMLTextAreaElement>(null);
   React.useEffect(() => {
@@ -335,6 +408,27 @@ function Composer({ value, onChange, onSend, disabled, config }: {
 
   return (
     <div className="composer">
+      {attachedFile && (
+        <div className="row" style={{
+          background: "var(--paper-2)",
+          border: "1px solid var(--line)",
+          padding: "4px 8px",
+          borderRadius: "var(--r-md)",
+          margin: "0 16px 8px",
+          alignSelf: "flex-start",
+          gap: 6,
+          fontSize: 12.5,
+          color: "var(--ink-2)",
+        }}>
+          <IcAttach size={12} style={{ color: "var(--accent)" }} />
+          <span className="serif" style={{ fontStyle: "italic", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {attachedFile.name}
+          </span>
+          <button type="button" onClick={() => setAttachedFile?.(null)} style={{ padding: 1, color: "var(--ink-4)", cursor: "pointer", background: "none", border: "none" }}>
+            <IcClose size={12} />
+          </button>
+        </div>
+      )}
       <div className="composer-inner">
         <textarea
           ref={ref}
@@ -347,14 +441,14 @@ function Composer({ value, onChange, onSend, disabled, config }: {
           placeholder="Empieza con una idea, una cita o un pasaje…"
         />
         <div className="row" style={{ gap: 4, paddingBottom: 4 }}>
-          <button className="btn-icon" title="Adjuntar"><IcAttach size={16} /></button>
+          <button className="btn-icon" onClick={onAttachClick} title="Adjuntar"><IcAttach size={16} /></button>
           <button className="btn-icon" title="Pasaje bíblico"><IcBook size={16} /></button>
           <button className="btn-icon" title="Dictar"><IcMic size={16} /></button>
           <button
             className="btn btn-accent btn-sm"
             onClick={onSend}
-            disabled={disabled || !value.trim()}
-            style={{ padding: "8px 12px", opacity: disabled || !value.trim() ? 0.5 : 1 }}
+            disabled={disabled || (!value.trim() && !attachedFile)}
+            style={{ padding: "8px 12px", opacity: disabled || (!value.trim() && !attachedFile) ? 0.5 : 1 }}
             title="Enviar  ⌘↵">
             <IcArrowUp size={14} />
           </button>

@@ -36,6 +36,7 @@ export default function App() {
   const [profile, setProfile] = React.useState<Profile | null>(null);
   
   const [activeSermonId, setActiveSermonId] = React.useState<string | null>(null);
+  const [presentingSermon, setPresentingSermon] = React.useState<any | null>(null);
   const [conversations, setConversations] = React.useState<any[]>([]);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [config, setConfig] = React.useState<SermonConfig>({
@@ -53,25 +54,20 @@ export default function App() {
     illustrationKinds: [],
     length: "medio",
     verseOption: "solo-cita",
-    provider: "claude",
+    provider: "gemini",
   });
 
   const loadConversations = React.useCallback(async () => {
     try {
       const list = await listConversations();
       setConversations(list);
-      if (list.length > 0 && activeConv === "c1") {
-        setActiveConv(list[0].id);
-      }
     } catch (err) {
       console.error("Error cargando conversaciones:", err);
     }
-  }, [activeConv]);
+  }, []);
 
   React.useEffect(() => {
-    if (profile) {
-      loadConversations();
-    }
+    if (profile) loadConversations();
   }, [profile, loadConversations]);
 
   React.useEffect(() => {
@@ -123,6 +119,8 @@ export default function App() {
           onOpenFilters={() => setFiltersOpen(true)}
         />
         <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} config={config} setConfig={setConfig} />
+        <OnboardingModal open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
+        {loginOpen && <LoginScreen onSignIn={() => setLoginOpen(false)} />}
       </>
     );
   }
@@ -161,6 +159,7 @@ export default function App() {
           onOpenFilters={() => setFiltersOpen(true)}
           config={config}
           onRefreshConvs={loadConversations}
+          profile={profile}
         />
       )}
       {screen === "biblioteca" && (
@@ -175,7 +174,10 @@ export default function App() {
         <SermonScreen
           sermonId={activeSermonId}
           onOpenFilters={() => setFiltersOpen(true)}
-          onPresent={() => setPresenterOpen(true)}
+          onPresent={(s) => {
+            setPresentingSermon(s);
+            setPresenterOpen(true);
+          }}
           onPrint={() => setPrintOpen(true)}
         />
       )}
@@ -189,7 +191,15 @@ export default function App() {
       <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} config={config} setConfig={setConfig} />
       <OnboardingModal open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
       {loginOpen && <LoginScreen onSignIn={() => setLoginOpen(false)} />}
-      {presenterOpen && <PresenterScreen onClose={() => setPresenterOpen(false)} />}
+      {presenterOpen && presentingSermon && (
+        <PresenterScreen
+          sermon={presentingSermon}
+          onClose={() => {
+            setPresenterOpen(false);
+            setPresentingSermon(null);
+          }}
+        />
+      )}
       {printOpen && <PrintScreen onClose={() => setPrintOpen(false)} />}
     </div>
   );

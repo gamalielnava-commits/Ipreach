@@ -1,7 +1,9 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { TopBar } from "./shell";
-import { IcSliders, IcPlus, IcEye, IcEdit, IcCheck, IcChevronD } from "./icons";
+import { IcSliders, IcPlus, IcEye, IcEdit, IcCheck, IcChevronD, IcClose } from "./icons";
+import { listSeries, saveSeries, deleteSeries, listSeriesParts, saveSeriesPart, newSeriesId } from "@/lib/series";
+import type { Series, SeriesPart } from "@/lib/types";
 
 type Serie = {
   id: string; title: string; sub: string; cover: string;
@@ -9,42 +11,44 @@ type Serie = {
 };
 
 export function SeriesScreen({ onOpenSermon }: { onOpenSermon: () => void }) {
-  const [expandedId, setExpandedId] = React.useState<string | null>(null);
-  const series: Serie[] = [
-    {
-      id: "beat",
-      title: "Bienaventuranzas",
-      sub: "Mateo 5:1–12 · serie expositiva de 9 partes",
-      cover: "deck-hillsong",
-      parts: 9, done: 2,
-      status: "En curso",
-      next: "Bienaventurados los mansos · 24 May",
-      excerpt: "Una serie sobre los gestos del corazón que reciben el reino. Cada parte es una bienaventuranza encarnada en la vida cotidiana.",
-      tags: ["Reino", "Discipulado", "Ética del Sermón del Monte"],
-    },
-    {
-      id: "gal",
-      title: "Hijos de Dios — Gálatas",
-      sub: "Carta a los Gálatas · 6 partes",
-      cover: "deck-cine",
-      parts: 6, done: 5,
-      status: "Por terminar",
-      next: "Conclusión — vivir por el Espíritu · 31 May",
-      excerpt: "De la esclavitud a la herencia. Recorremos la carta de Pablo siguiendo el contraste entre ley y promesa.",
-      tags: ["Gracia", "Ley y Evangelio", "Pablo"],
-    },
-    {
-      id: "ps",
-      title: "Salmos de ascensión",
-      sub: "Salmos 120–134 · 15 partes",
-      cover: "deck-realista",
-      parts: 15, done: 0,
-      status: "Borrador",
-      next: "Empieza el 14 Jun",
-      excerpt: "Los cánticos del peregrino. Un recorrido contemplativo por los quince salmos que se cantaban subiendo a Jerusalén.",
-      tags: ["Salmos", "Peregrinaje", "Contemplativo"],
-    },
-  ];
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [series, setSeries] = useState<Series[]>([]);
+  const [parts, setParts] = useState<Record<string, SeriesPart[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const loadSeries = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await listSeries();
+      setSeries(list);
+      for (const s of list) {
+        const p = await listSeriesParts(s.id);
+        setParts(prev => ({ ...prev, [s.id]: p }));
+      }
+    } catch (err) {
+      console.error("Error loading series:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSeries();
+  }, [loadSeries]);
+
+  const seriesData: Serie[] = series.map(s => ({
+    id: s.id,
+    title: s.title,
+    sub: `${s.scriptureReference || "Sin texto"} · ${s.totalParts} partes`,
+    cover: s.coverStyle || "deck-hillsong",
+    parts: s.totalParts,
+    done: s.completedParts,
+    status: s.status === "active" ? "En curso" : s.status === "completed" ? "Completada" : "Borrador",
+    next: s.nextScheduledDate ? `Próximo: ${new Date(s.nextScheduledDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}` : "Sin fecha",
+    excerpt: s.description || "Sin descripción",
+    tags: s.tags || [],
+  }));
 
   return (
     <div className="main">
@@ -54,19 +58,37 @@ export function SeriesScreen({ onOpenSermon }: { onOpenSermon: () => void }) {
         right={
           <div className="row" style={{ gap: 6 }}>
             <button className="btn btn-ghost btn-sm"><IcSliders size={14} /> Filtros</button>
-            <button className="btn btn-accent btn-sm"><IcPlus size={14} /> Nueva serie</button>
+            <button className="btn btn-accent btn-sm" onClick={() => setModalOpen(true)}><IcPlus size={14} /> Nueva serie</button>
           </div>
         }
       />
       <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px 48px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gap: 18 }}>
-          {series.map((s) => (
-            <SeriesCard key={s.id} s={s} onOpen={onOpenSermon}
-              expanded={expandedId === s.id}
-              onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="ui muted" style={{ textAlign: "center", padding: 40 }}>Cargando series...</div>
+        ) : seriesData.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 60 }}>
+            <p className="display" style={{ fontSize: 18, marginBottom: 8 }}>No hay series aún</p>
+            <p className="ui muted" style={{ marginBottom: 16 }}>Crea tu primera serie para organizar tus sermones</p>
+            <button className="btn btn-accent" onClick={() => setModalOpen(true)}><IcPlus size={14} /> Nueva serie</button>
+          </div>
+        ) : (
+          <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gap: 18 }}>
+            {seriesData.map((s) => (
+              <SeriesCard key={s.id} s={s} parts={parts[s.id] || []} onOpen={onOpenSermon}
+                expanded={expandedId === s.id}
+                onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)} 
+                onDelete={async () => {
+                  if (confirm("¿Eliminar esta serie?")) {
+                    await deleteSeries(s.id);
+                    loadSeries();
+                  }
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
+      {modalOpen && <NewSeriesModal onClose={() => setModalOpen(false)} onSaved={loadSeries} />}
     </div>
   );
 }
@@ -91,11 +113,15 @@ const PART_TITLES: Record<string, string[]> = {
     "Vivir por el Espíritu",
     "Conclusión — nueva creación",
   ],
-  ps: Array.from({ length: 15 }, (_, i) => `Salmo ${120 + i} — ${["Clamor del peregrino", "El guardador de Israel", "Alegría de ir a la casa del Señor", "Paz de Jerusalén", "Ojos hacia el Señor", "La ayuda viene de Dios", "Confianza bajo la lluvia", "Siembra y cosecha", "El Señor es justo", "Liberación del cautiverio", "El hogar que Dios edifica", "Hijos como flechas", "Bienaventurado el que teme al Señor", "El siervo que canta libre", "Esperanza en el Señor"][i]}`),
 };
 
-function SeriesCard({ s, onOpen, expanded, onToggle }: { s: Serie; onOpen: () => void; expanded: boolean; onToggle: () => void }) {
+function SeriesCard({ s, parts, onOpen, expanded, onToggle, onDelete }: { s: Serie; parts: SeriesPart[]; onOpen: () => void; expanded: boolean; onToggle: () => void; onDelete: () => void }) {
   const pct = Math.round((s.done / s.parts) * 100);
+  const actualParts = parts.length > 0 ? parts : Array.from({ length: s.parts }, (_, i) => ({ 
+    id: `p${i}`, partNumber: i + 1, title: PART_TITLES[s.id]?.[i] || `Parte ${i + 1}`, 
+    scripture: "", scheduledDate: "", deliveredDate: "" 
+  } as SeriesPart));
+
   return (
     <>
     <div className="series-card-grid" style={{
@@ -131,7 +157,7 @@ function SeriesCard({ s, onOpen, expanded, onToggle }: { s: Serie; onOpen: () =>
         <h2 className="display" style={{ fontSize: 28, fontWeight: 500, lineHeight: 1.1, marginBottom: 4 }}>{s.title}</h2>
         <p className="ui muted" style={{ fontSize: 12.5, marginBottom: 12 }}>{s.sub}</p>
         <p className="serif" style={{ fontSize: 15.5, color: "var(--ink-2)", fontStyle: "italic", lineHeight: 1.55, marginBottom: 14, maxWidth: 620 }}>
-          “{s.excerpt}”
+          "{s.excerpt}"
         </p>
 
         <div className="row" style={{ gap: 4, marginBottom: 12 }}>
@@ -163,6 +189,7 @@ function SeriesCard({ s, onOpen, expanded, onToggle }: { s: Serie; onOpen: () =>
               <IcChevronD size={12} style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform .15s", marginLeft: 2 }} />
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={onOpen}><IcEdit size={14} /> Continuar</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onDelete} style={{ color: "var(--danger)" }}><IcClose size={14} /></button>
           </div>
         </div>
       </div>
@@ -176,14 +203,14 @@ function SeriesCard({ s, onOpen, expanded, onToggle }: { s: Serie; onOpen: () =>
       }}>
         <div className="eyebrow" style={{ marginBottom: 12, fontSize: 9.5 }}>Partes de la serie</div>
         <div className="col" style={{ gap: 0 }}>
-          {(PART_TITLES[s.id] ?? Array.from({ length: s.parts }, (_, i) => `Parte ${i + 1}`)).map((title, i) => {
-            const done = i < s.done;
-            const next = i === s.done;
+          {actualParts.map((part, i) => {
+            const done = part.deliveredDate != null;
+            const next = !done && i === actualParts.findIndex(p => !p.deliveredDate);
             return (
-              <div key={i} style={{
+              <div key={part.id || i} style={{
                 display: "grid", gridTemplateColumns: "24px 1fr auto", gap: 12, alignItems: "center",
                 padding: "10px 0",
-                borderBottom: i < s.parts - 1 ? "1px dashed var(--line-soft)" : "none",
+                borderBottom: i < actualParts.length - 1 ? "1px dashed var(--line-soft)" : "none",
                 background: next ? "color-mix(in oklab, var(--accent) 3%, transparent)" : "transparent",
               }}>
                 <div style={{
@@ -201,7 +228,7 @@ function SeriesCard({ s, onOpen, expanded, onToggle }: { s: Serie; onOpen: () =>
                     fontSize: 13.5, lineHeight: 1.3,
                     color: done ? "var(--ink-3)" : "var(--ink)",
                     textDecoration: done ? "line-through" : "none",
-                  }}>{title}</div>
+                  }}>{part.title}</div>
                   {next && <div className="ui" style={{ fontSize: 10.5, color: "var(--accent)", fontWeight: 600, marginTop: 2 }}>Siguiente a predicar</div>}
                 </div>
                 {next && (
@@ -221,5 +248,89 @@ function SeriesCard({ s, onOpen, expanded, onToggle }: { s: Serie; onOpen: () =>
       </div>
     )}
   </>
+  );
+}
+
+function NewSeriesModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [scripture, setScripture] = useState("");
+  const [totalParts, setTotalParts] = useState(4);
+  const [tags, setTags] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      const newSeries: Series = {
+        id: newSeriesId(),
+        title: title.trim(),
+        subtitle: subtitle.trim(),
+        description: description.trim(),
+        scriptureReference: scripture.trim(),
+        coverStyle: "deck-hillsong",
+        totalParts,
+        completedParts: 0,
+        status: "draft",
+        tags,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await saveSeries(newSeries);
+      onSaved();
+      onClose();
+    } catch (err) {
+      console.error("Error saving series:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+      display: "grid", placeItems: "center", zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: "var(--paper)", borderRadius: "var(--r-lg)",
+        border: "1px solid var(--line)", padding: 32,
+        maxWidth: 500, width: "90%",
+      }} onClick={e => e.stopPropagation()}>
+        <h2 className="display" style={{ fontSize: 22, marginBottom: 20 }}>Nueva serie</h2>
+        <div className="col" style={{ gap: 16 }}>
+          <div>
+            <label className="ui" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 6 }}>Título *</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Bienaventuranzas" style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", fontFamily: "var(--font-ui)" }} />
+          </div>
+          <div>
+            <label className="ui" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 6 }}>Subtítulo</label>
+            <input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="Ej: Mateo 5:1-12 · 9 partes" style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", fontFamily: "var(--font-ui)" }} />
+          </div>
+          <div>
+            <label className="ui" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 6 }}>Texto bíblico</label>
+            <input value={scripture} onChange={e => setScripture(e.target.value)} placeholder="Ej: Mateo 5-7" style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", fontFamily: "var(--font-ui)" }} />
+          </div>
+          <div>
+            <label className="ui" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 6 }}>Descripción</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Breve descripción de la serie..." style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", fontFamily: "var(--font-body)", resize: "vertical" }} />
+          </div>
+          <div>
+            <label className="ui" style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 6 }}>Número de partes</label>
+            <select value={totalParts} onChange={e => setTotalParts(Number(e.target.value))} style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", fontFamily: "var(--font-ui)" }}>
+              {[3,4,5,6,7,8,9,10,12,15].map(n => <option key={n} value={n}>{n} partes</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="row" style={{ gap: 12, marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--line)" }}>
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancelar</button>
+          <span style={{ flex: 1 }} />
+          <button className="btn btn-accent" onClick={handleSave} disabled={!title.trim() || saving}>
+            {saving ? "Guardando..." : "Crear serie"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

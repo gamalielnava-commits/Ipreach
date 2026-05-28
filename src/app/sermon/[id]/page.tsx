@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import BottomNav from "@/components/BottomNav";
 import { slideDensities, slideStyles } from "@/lib/catalogs";
 import { bibleVersions } from "@/lib/bible";
-import { exportPptx, exportWord } from "@/lib/export";
+import { exportPptx, exportWord, type ExportOptions } from "@/lib/export";
+import { getProfile } from "@/lib/profile";
 import { slideImagePrompt } from "@/lib/prompt";
 import { getSermon, newId, saveSermon } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
@@ -48,6 +48,17 @@ export default function SermonPage({ params }: { params: { id: string } }) {
     text: string;
   } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [exportOpts, setExportOpts] = useState<ExportOptions>({});
+
+  useEffect(() => {
+    getProfile().then((p) => {
+      if (p) setExportOpts({
+        logoUrl: p.defaults?.churchLogoUrl,
+        includeLogo: p.defaults?.includeLogoInExports ?? true,
+        churchName: p.churchName,
+      });
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -161,7 +172,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
   async function downloadWord() {
     if (!sermon) return;
     try {
-      await exportWord(sermon);
+      await exportWord(sermon, exportOpts);
     } catch {
       setError("No se pudo generar el archivo Word.");
     }
@@ -170,7 +181,7 @@ export default function SermonPage({ params }: { params: { id: string } }) {
   async function downloadPptx(deck: SlideDeck) {
     if (!sermon) return;
     try {
-      await exportPptx(sermon, deck);
+      await exportPptx(sermon, deck, exportOpts);
     } catch {
       setError("No se pudo generar el archivo PowerPoint.");
     }
@@ -593,7 +604,6 @@ export default function SermonPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <BottomNav />
     </div>
   );
 }

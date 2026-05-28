@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { IcChat, IcBook, IcLibrary, IcPlus, IcSlide, IcCalendar, IcShare, IcStar, IcSettings, IcSpark } from "./icons";
+import { IcChat, IcBook, IcLibrary, IcPlus, IcSlide, IcCalendar, IcSettings, IcSpark } from "./icons";
 
 export type Screen =
   | "estudio" | "biblioteca" | "sermon" | "series" | "planificador" | "movil" | "marca" | "perfil" | "planes";
@@ -29,7 +29,7 @@ export function Wordmark() {
   );
 }
 
-type Conversation = { id: string; title: string; date: string; active?: boolean };
+type Conversation = { id: string; title: string; date?: string; active?: boolean; updatedAt?: string; createdAt?: string };
 
 export function Sidebar({
   screen, setScreen, conversations, activeConv, setActiveConv, profile, open = false, onClose,
@@ -50,7 +50,7 @@ export function Sidebar({
 
       <div style={{ padding: "0 12px 8px" }}>
         <button className="btn btn-accent" style={{ width: "100%", justifyContent: "center" }}
-          onClick={() => go("estudio")}>
+          onClick={() => { setActiveConv("c1"); go("estudio"); }}>
           <IcPlus size={16} /> Nuevo estudio
         </button>
       </div>
@@ -81,16 +81,6 @@ export function Sidebar({
           <span className="spacer" />
           <span className="pill" style={{ fontSize: 9, padding: "2px 6px" }}>Dom</span>
         </button>
-        <button className={"nav-item " + (screen === "movil" ? "active" : "")} onClick={() => go("movil")}>
-          <IcShare size={16} /> Móvil
-          <span className="spacer" />
-          <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>iOS · Android</span>
-        </button>
-        <button className={"nav-item " + (screen === "marca" ? "active" : "")} onClick={() => go("marca")}>
-          <IcStar size={16} /> Marca
-          <span className="spacer" />
-          <span className="pill" style={{ fontSize: 9, padding: "2px 6px" }}>Nuevo</span>
-        </button>
         <button className={"nav-item " + (screen === "planes" ? "active" : "")} onClick={() => setScreen("planes")}>
           <IcSpark size={16} /> Planes
           <span className="spacer" />
@@ -116,7 +106,9 @@ export function Sidebar({
               flex: 1, minWidth: 0, overflow: "hidden",
               textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{c.title}</span>
-            <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>{c.date}</span>
+            <span className="ui" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
+              {c.date || (c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("es-MX", { month: "short", day: "numeric" }) : "")}
+            </span>
           </button>
         ))}
       </div>

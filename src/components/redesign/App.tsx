@@ -119,6 +119,8 @@ export default function App() {
           onOpenFilters={() => setFiltersOpen(true)}
         />
         <FiltersRail open={filtersOpen} onClose={() => setFiltersOpen(false)} config={config} setConfig={setConfig} />
+        <OnboardingModal open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
+        {loginOpen && <LoginScreen onSignIn={() => setLoginOpen(false)} />}
       </>
     );
   }

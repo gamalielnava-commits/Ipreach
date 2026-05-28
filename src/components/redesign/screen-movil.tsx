@@ -150,7 +150,7 @@ export function IOSEstudio({ fullscreen = false }: { fullscreen?: boolean } = {}
             illustrationKinds: [],
             length: "medio",
             verseOption: "solo-cita",
-            provider: "claude",
+            provider: "gemini",
           },
           messages: history.map((m) => ({
             role: m.role === "ai" ? "assistant" : "user",
